@@ -15,6 +15,7 @@ import passportRoutes from "./routes/passport.routes";
 import materialRequirementRoutes from "./routes/material-requirement.routes";
 import matchingRoutes from "./routes/matching.routes";
 import recommendationRoutes from "./routes/recommendation.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
 
 const app = express();
@@ -72,6 +73,8 @@ app.use("/api", materialRequirementRoutes);
 app.use("/api", matchingRoutes);
 
 app.use("/api", recommendationRoutes);
+
+app.use("/api/dashboard", dashboardRoutes);
 
 // --------------------------------------------------
 // Error Middleware

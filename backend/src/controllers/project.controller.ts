@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
     createProject,
     getUserProjects,
+    getRecentUserProjects,
     getProjectById,
     updateProject,
     deleteProject,
@@ -53,6 +54,28 @@ export const getProjectsController = async (
         next(error);
     }
 };
+
+export const getRecentProjectsController = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = res.locals.user.userId;
+
+        const projects = await getRecentUserProjects(userId);
+
+        res.status(200).json(
+            successResponse(
+                "Recent projects retrieved successfully",
+                projects
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getProjectController = async (
     req: Request,
     res: Response,

@@ -56,6 +56,27 @@ export const getUserProjects = async (
   });
 };
 
+export const getRecentUserProjects = async (
+  userId: string
+) => {
+  return prisma.project.findMany({
+    where: {
+      ownerId: userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      deadline: true,
+      createdAt: true,
+    },
+  });
+};
+
 export const getProjectById = async (
   projectId: string,
   userId: string

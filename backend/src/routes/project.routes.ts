@@ -4,6 +4,7 @@ import { validate } from "../middleware/validation.middleware";
 import {
   createProjectController,
   getProjectsController,
+  getRecentProjectsController,
   getProjectController,
   updateProjectController,
   deleteProjectController,
@@ -48,6 +49,11 @@ router.put(
 router.delete(
   "/:id",
   deleteProjectController
+);
+
+router.get(
+  "/recent",
+  getRecentProjectsController
 );
 
 export default router;

@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   createMaterial,
   getUserMaterials,
+  getRecentUserMaterials,
   getMaterialById,
   updateMaterial,
   deleteMaterial,
@@ -48,6 +49,27 @@ export const getMaterialsController = async (
     res.status(200).json(
       successResponse(
         "Materials retrieved successfully",
+        materials
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getRecentMaterialsController = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = res.locals.user.userId;
+
+    const materials = await getRecentUserMaterials(userId);
+
+    res.status(200).json(
+      successResponse(
+        "Recent materials retrieved successfully",
         materials
       )
     );

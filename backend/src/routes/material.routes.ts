@@ -9,6 +9,7 @@ import {
   getMaterialController,
   updateMaterialController,
   deleteMaterialController,
+  getRecentMaterialsController,
 } from "../controllers/material.controller";
 
 import {
@@ -45,6 +46,11 @@ router.put(
 router.delete(
   "/:id",
   deleteMaterialController
+);
+
+router.get(
+  "/recent",
+  getRecentMaterialsController
 );
 
 export default router;

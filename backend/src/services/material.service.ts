@@ -141,6 +141,33 @@ export const getUserMaterials = async (
   });
 };
 
+export const getRecentUserMaterials = async (
+  userId: string
+) => {
+  return prisma.material.findMany({
+    where: {
+      registeredById: userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 5,
+    select: {
+      id: true,
+      materialCode: true,
+      type: true,
+      subtype: true,
+      quantity: true,
+      unit: true,
+      conditionScore: true,
+      location: true,
+      status: true,
+      verification: true,
+      createdAt: true,
+    },
+  });
+};
+
 export const getMaterialById = async (
   materialId: string,
   userId: string
