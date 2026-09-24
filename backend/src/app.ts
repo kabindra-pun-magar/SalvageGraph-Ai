@@ -6,6 +6,7 @@ import { errorMiddleware } from "./middleware/error.middleware";
 import { successResponse } from "./utils/api-response";
 import { prisma } from "./config/database";
 import authRoutes from "./routes/auth.routes";
+import projectRoutes from "./routes/project.routes";
 
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.get("/api/health", async (_req, res, next) => {
   try {
