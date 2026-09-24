@@ -1,3 +1,8 @@
+import { calculateDistanceKm } from "./gis.service";
+import {
+    calculateTransportCost,
+    calculateEconomicBenefit,
+} from "./cost.service";
 import { prisma } from "../config/database";
 import { ApiError } from "../utils/api-error";
 
@@ -5,11 +10,17 @@ const calculateDimensionScore = (
     materialValue: number | null,
     requiredValue: number | null
 ): number => {
-    if (requiredValue === null || requiredValue === undefined) {
+    if (
+        requiredValue === null ||
+        requiredValue === undefined
+    ) {
         return 100;
     }
 
-    if (materialValue === null || materialValue === undefined) {
+    if (
+        materialValue === null ||
+        materialValue === undefined
+    ) {
         return 0;
     }
 
@@ -141,7 +152,7 @@ export const runMatching = async (
             material.conditionScore !== null &&
             material.conditionScore !== undefined &&
             material.conditionScore <
-            requirement.requiredCondition
+                requirement.requiredCondition
         ) {
             return false;
         }
@@ -219,10 +230,49 @@ export const runMatching = async (
         const dimensionScore =
             dimensionScores.length > 0
                 ? dimensionScores.reduce(
-                    (sum, score) => sum + score,
-                    0
-                ) / dimensionScores.length
+                      (sum, score) => sum + score,
+                      0
+                  ) / dimensionScores.length
                 : 100;
+
+        /*
+         * GIS calculation
+         */
+        let distanceKm: number | null = null;
+        let transportCost: number | null = null;
+
+        if (
+            material.latitude !== null &&
+            material.latitude !== undefined &&
+            material.longitude !== null &&
+            material.longitude !== undefined &&
+            requirement.project.latitude !== null &&
+            requirement.project.latitude !== undefined &&
+            requirement.project.longitude !== null &&
+            requirement.project.longitude !== undefined
+        ) {
+            distanceKm = calculateDistanceKm(
+                material.latitude,
+                material.longitude,
+                requirement.project.latitude,
+                requirement.project.longitude
+            );
+
+            transportCost =
+                calculateTransportCost(distanceKm);
+        }
+
+        /*
+         * Economic feasibility calculation
+         */
+        const economicBenefit =
+            calculateEconomicBenefit(
+                Number(material.quantity),
+                material.estimatedUnitValue !== null
+                    ? Number(material.estimatedUnitValue)
+                    : null,
+                transportCost ?? 0
+            );
 
         const suitabilityScore =
             calculateSuitabilityScore(
@@ -239,6 +289,9 @@ export const runMatching = async (
             conditionScore,
             quantityScore,
             dimensionScore,
+            distanceKm,
+            transportCost,
+            economicBenefit,
             suitabilityScore,
         };
     });
@@ -254,52 +307,75 @@ export const runMatching = async (
             const results = [];
 
             for (const match of matches) {
-                const existingMatch = await tx.match.findFirst({
-                    where: {
-                        materialId: match.materialId,
-                        requirementId: match.requirementId,
-                    },
-                });
-
-                if (existingMatch) {
-                    const updatedMatch = await tx.match.update({
+                const existingMatch =
+                    await tx.match.findFirst({
                         where: {
-                            id: existingMatch.id,
-                        },
-                        data: {
-                            compatibilityScore:
-                                match.compatibilityScore,
-                            conditionScore:
-                                match.conditionScore,
-                            quantityScore:
-                                match.quantityScore,
-                            dimensionScore:
-                                match.dimensionScore,
-                            suitabilityScore:
-                                match.suitabilityScore,
-                            status: "CANDIDATE",
+                            materialId: match.materialId,
+                            requirementId:
+                                match.requirementId,
                         },
                     });
+
+                if (existingMatch) {
+                    const updatedMatch =
+                        await tx.match.update({
+                            where: {
+                                id: existingMatch.id,
+                            },
+                            data: {
+                                compatibilityScore:
+                                    match.compatibilityScore,
+                                conditionScore:
+                                    match.conditionScore,
+                                quantityScore:
+                                    match.quantityScore,
+                                dimensionScore:
+                                    match.dimensionScore,
+
+                                distanceKm:
+                                    match.distanceKm,
+                                transportCost:
+                                    match.transportCost,
+                                economicBenefit:
+                                    match.economicBenefit,
+
+                                suitabilityScore:
+                                    match.suitabilityScore,
+                                status: "CANDIDATE",
+                            },
+                        });
 
                     results.push(updatedMatch);
                 } else {
-                    const createdMatch = await tx.match.create({
-                        data: {
-                            materialId: match.materialId,
-                            requirementId: match.requirementId,
-                            compatibilityScore:
-                                match.compatibilityScore,
-                            conditionScore:
-                                match.conditionScore,
-                            quantityScore:
-                                match.quantityScore,
-                            dimensionScore:
-                                match.dimensionScore,
-                            suitabilityScore:
-                                match.suitabilityScore,
-                            status: "CANDIDATE",
-                        },
-                    });
+                    const createdMatch =
+                        await tx.match.create({
+                            data: {
+                                materialId:
+                                    match.materialId,
+                                requirementId:
+                                    match.requirementId,
+
+                                compatibilityScore:
+                                    match.compatibilityScore,
+                                conditionScore:
+                                    match.conditionScore,
+                                quantityScore:
+                                    match.quantityScore,
+                                dimensionScore:
+                                    match.dimensionScore,
+
+                                distanceKm:
+                                    match.distanceKm,
+                                transportCost:
+                                    match.transportCost,
+                                economicBenefit:
+                                    match.economicBenefit,
+
+                                suitabilityScore:
+                                    match.suitabilityScore,
+                                status: "CANDIDATE",
+                            },
+                        });
 
                     results.push(createdMatch);
                 }
@@ -313,42 +389,42 @@ export const runMatching = async (
 };
 
 export const getMatchesForRequirement = async (
-  requirementId: string,
-  userId: string
+    requirementId: string,
+    userId: string
 ) => {
-  const requirement =
-    await prisma.materialRequirement.findUnique({
-      where: {
-        id: requirementId,
-      },
-      include: {
-        project: true,
-      },
+    const requirement =
+        await prisma.materialRequirement.findUnique({
+            where: {
+                id: requirementId,
+            },
+            include: {
+                project: true,
+            },
+        });
+
+    if (!requirement) {
+        throw new ApiError(
+            404,
+            "Material requirement not found"
+        );
+    }
+
+    if (requirement.project.ownerId !== userId) {
+        throw new ApiError(
+            403,
+            "You do not have permission to access these matches"
+        );
+    }
+
+    return prisma.match.findMany({
+        where: {
+            requirementId,
+        },
+        include: {
+            material: true,
+        },
+        orderBy: {
+            suitabilityScore: "desc",
+        },
     });
-
-  if (!requirement) {
-    throw new ApiError(
-      404,
-      "Material requirement not found"
-    );
-  }
-
-  if (requirement.project.ownerId !== userId) {
-    throw new ApiError(
-      403,
-      "You do not have permission to access these matches"
-    );
-  }
-
-  return prisma.match.findMany({
-    where: {
-      requirementId,
-    },
-    include: {
-      material: true,
-    },
-    orderBy: {
-      suitabilityScore: "desc",
-    },
-  });
 };
