@@ -12,6 +12,7 @@ import materialRoutes from "./routes/material.routes";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { successResponse } from "./utils/api-response";
 import passportRoutes from "./routes/passport.routes";
+import materialRequirementRoutes from "./routes/material-requirement.routes";
 
 const app = express();
 
@@ -62,6 +63,8 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/materials", materialRoutes);
 
 app.use("/api", passportRoutes);
+
+app.use("/api", materialRequirementRoutes);
 
 // --------------------------------------------------
 // Error Middleware
