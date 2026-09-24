@@ -1,0 +1,278 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  PROJECT_MANAGER
+  MATERIAL_MANAGER
+  INSPECTOR
+  USER
+}
+
+enum MaterialType {
+  TILE
+  BRICK
+  PIPE
+  STEEL
+  TIMBER
+  OTHER
+}
+
+enum MaterialStatus {
+  AVAILABLE
+  RESERVED
+  ALLOCATED
+  USED
+  DISPOSED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  NEEDS_INSPECTION
+}
+
+enum MatchStatus {
+  CANDIDATE
+  EVALUATED
+  RECOMMENDED
+  ACCEPTED
+  REJECTED
+}
+
+enum RecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_INSPECTION
+}
+
+model User {
+  id       String   @id @default(uuid())
+  name     String
+  email    String   @unique
+  password String
+  role     UserRole @default(USER)
+
+  projects  Project[]
+  materials Material[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  location  String?
+  latitude  Float?
+  longitude Float?
+
+  budget   Decimal?  @db.Decimal(14, 2)
+  deadline DateTime?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id])
+
+  requirements    MaterialRequirement[]
+  sourceMaterials Material[]            @relation("SourceProject")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([deadline])
+}
+
+model Material {
+  id           String       @id @default(uuid())
+  materialCode String       @unique
+  type         MaterialType
+  subtype      String?
+
+  quantity Decimal @db.Decimal(14, 2)
+  unit     String
+
+  length   Float?
+  width    Float?
+  height   Float?
+  diameter Float?
+
+  conditionScore Float?
+  age            Int?
+
+  sourceProjectId String?
+  sourceProject   Project? @relation("SourceProject", fields: [sourceProjectId], references: [id])
+
+  location  String?
+  latitude  Float?
+  longitude Float?
+
+  status       MaterialStatus     @default(AVAILABLE)
+  verification VerificationStatus @default(PENDING)
+
+  registeredById String
+  registeredBy   User   @relation(fields: [registeredById], references: [id])
+
+  images   MaterialImage[]
+  passport MaterialPassport?
+  history  MaterialHistory[]
+  matches  Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([verification])
+  @@index([sourceProjectId])
+}
+
+model MaterialImage {
+  id         String @id @default(uuid())
+  materialId String
+
+  imageUrl   String
+  imageType  String?
+  aiMetadata Json?
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([materialId])
+}
+
+model MaterialPassport {
+  id         String @id @default(uuid())
+  materialId String @unique
+
+  passportCode String  @unique
+  qrCode       String?
+
+  materialType MaterialType
+  subtype      String?
+
+  dimensions Json?
+  quantity   Decimal @db.Decimal(14, 2)
+  unit       String
+
+  conditionScore Float?
+  source         String?
+  location       String?
+
+  registeredDate DateTime @default(now())
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaterialHistory {
+  id         String @id @default(uuid())
+  materialId String
+
+  action      String
+  description String?
+  projectId   String?
+  metadata    Json?
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([materialId])
+  @@index([createdAt])
+}
+
+model MaterialRequirement {
+  id        String @id @default(uuid())
+  projectId String
+
+  materialType MaterialType
+  subtype      String?
+
+  quantity Decimal @db.Decimal(14, 2)
+  unit     String
+
+  requiredCondition Float?
+
+  length   Float?
+  width    Float?
+  height   Float?
+  diameter Float?
+
+  intendedApplication String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  matches Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([materialType])
+}
+
+model Match {
+  id            String @id @default(uuid())
+  materialId    String
+  requirementId String
+
+  compatibilityScore Float?
+  conditionScore     Float?
+  quantityScore      Float?
+  dimensionScore     Float?
+
+  distanceKm      Float?
+  transportCost   Decimal? @db.Decimal(14, 2)
+  economicBenefit Decimal? @db.Decimal(14, 2)
+
+  suitabilityScore Float?
+
+  status MatchStatus @default(CANDIDATE)
+
+  material    Material            @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  requirement MaterialRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  recommendation Recommendation?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([materialId])
+  @@index([requirementId])
+  @@index([suitabilityScore])
+  @@index([status])
+}
+
+model Recommendation {
+  id      String @id @default(uuid())
+  matchId String @unique
+
+  score       Float
+  explanation String
+
+  estimatedSaving      Decimal? @db.Decimal(14, 2)
+  environmentalBenefit Json?
+
+  status RecommendationStatus @default(PENDING)
+
+  verifiedBy       String?
+  verificationNote String?
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
