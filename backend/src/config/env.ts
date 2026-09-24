@@ -1,26 +1,29 @@
-import dotenv from "dotenv";
+import "dotenv/config";
+import { z } from "zod";
 
-dotenv.config();
+const envSchema = z.object({
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 
-const requiredEnv = (key: string): string => {
-  const value = process.env[key];
+  PORT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(5000),
 
-  if (!value) {
-    throw new Error(`Missing environment variable: ${key}`);
-  }
+  DATABASE_URL: z
+    .string()
+    .min(1, "DATABASE_URL is required"),
 
-  return value;
-};
+  JWT_SECRET: z
+    .string()
+    .min(32, "JWT_SECRET must be at least 32 characters"),
 
-export const env = {
-  PORT: Number(process.env.PORT) || 5000,
+  AI_SERVICE_URL: z
+    .string()
+    .url()
+    .default("http://localhost:8000"),
+});
 
-  DATABASE_URL: requiredEnv("DATABASE_URL"),
-
-  JWT_SECRET: requiredEnv("JWT_SECRET"),
-
-  NODE_ENV: process.env.NODE_ENV || "development",
-
-  AI_SERVICE_URL:
-    process.env.AI_SERVICE_URL || "http://localhost:8000"
-};
+export const env = envSchema.parse(process.env);
