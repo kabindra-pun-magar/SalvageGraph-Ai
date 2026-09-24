@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import { errorMiddleware } from "./middleware/error.middleware";
 import { successResponse } from "./utils/api-response";
+import { prisma } from "./config/database";
 
 const app = express();
 
@@ -13,11 +14,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
-app.get("/api/health", (_req, res) => {
-  res.status(200).json(
-    successResponse("SalvageGraph API is running")
-  );
+app.get("/api/health", async (_req, res, next) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+
+    res.status(200).json(
+      successResponse("SalvageGraph API and database are healthy")
+    );
+  } catch (error) {
+    next(error);
+  }
 });
+
 app.use(errorMiddleware);
 
 export default app;
