@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { prisma } from "../config/database";
 import { ApiError } from "../utils/api-error";
 
@@ -126,4 +127,205 @@ export const createPassport = async (
   );
 
   return result;
+};
+
+export const getPassportByMaterialId = async (
+  materialId: string,
+  userId: string
+) => {
+  const material = await prisma.material.findUnique({
+    where: { id: materialId },
+  });
+
+  if (!material) {
+    throw new ApiError(404, "Material not found");
+  }
+
+  if (material.registeredById !== userId) {
+    throw new ApiError(
+      403,
+      "You do not have permission to access this material passport"
+    );
+  }
+
+  const passport = await prisma.materialPassport.findUnique({
+    where: { materialId },
+  });
+
+  if (!passport) {
+    throw new ApiError(
+      404,
+      "Material passport not found"
+    );
+  }
+
+  return passport;
+};
+
+interface UpdatePassportInput {
+  passportId: string;
+  userId: string;
+  subtype?: string;
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+    diameter?: number;
+  };
+  quantity?: number;
+  unit?: string;
+  conditionScore?: number;
+  source?: string;
+  location?: string;
+}
+
+export const updatePassport = async (
+  input: UpdatePassportInput
+) => {
+  const {
+    passportId,
+    userId,
+    subtype,
+    dimensions,
+    quantity,
+    unit,
+    conditionScore,
+    source,
+    location,
+  } = input;
+
+  const passport = await prisma.materialPassport.findUnique({
+    where: { id: passportId },
+    include: {
+      material: true,
+    },
+  });
+
+  if (!passport) {
+    throw new ApiError(404, "Material passport not found");
+  }
+
+  if (passport.material.registeredById !== userId) {
+    throw new ApiError(
+      403,
+      "You do not have permission to update this material passport"
+    );
+  }
+
+  const updatedPassport = await prisma.$transaction(
+    async (tx) => {
+      const updated = await tx.materialPassport.update({
+        where: { id: passportId },
+        data: {
+          subtype,
+          dimensions,
+          quantity,
+          unit,
+          conditionScore,
+          source,
+          location,
+        },
+      });
+
+      await tx.materialHistory.create({
+        data: {
+          materialId: passport.materialId,
+          action: "PASSPORT_UPDATED",
+          description: "Material passport updated",
+          metadata: {
+            passportCode: passport.passportCode,
+          },
+        },
+      });
+
+      return updated;
+    }
+  );
+
+  return updatedPassport;
+};
+
+export const getMaterialHistory = async (
+  materialId: string,
+  userId: string
+) => {
+  const material = await prisma.material.findUnique({
+    where: { id: materialId },
+  });
+
+  if (!material) {
+    throw new ApiError(404, "Material not found");
+  }
+
+  if (material.registeredById !== userId) {
+    throw new ApiError(
+      403,
+      "You do not have permission to access this material history"
+    );
+  }
+
+  const history = await prisma.materialHistory.findMany({
+    where: {
+      materialId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return history;
+};
+
+export const generatePassportQRCode = async (
+  passportId: string,
+  userId: string
+) => {
+  const passport = await prisma.materialPassport.findUnique({
+    where: { id: passportId },
+    include: {
+      material: true,
+    },
+  });
+
+  if (!passport) {
+    throw new ApiError(404, "Material passport not found");
+  }
+
+  if (passport.material.registeredById !== userId) {
+    throw new ApiError(
+      403,
+      "You do not have permission to generate this passport QR code"
+    );
+  }
+
+  const passportUrl =
+    `http://localhost:5000/api/passports/${passport.passportCode}`;
+
+  const qrCode = await QRCode.toDataURL(passportUrl);
+
+  const updatedPassport = await prisma.$transaction(
+    async (tx) => {
+      const updated = await tx.materialPassport.update({
+        where: { id: passportId },
+        data: {
+          qrCode,
+        },
+      });
+
+      await tx.materialHistory.create({
+        data: {
+          materialId: passport.materialId,
+          action: "QR_CODE_GENERATED",
+          description: "Passport QR code generated",
+          metadata: {
+            passportCode: passport.passportCode,
+          },
+        },
+      });
+
+      return updated;
+    }
+  );
+
+  return updatedPassport;
 };
