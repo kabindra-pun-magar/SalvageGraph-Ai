@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { errorMiddleware } from "./middleware/error.middleware";
+import { successResponse } from "./utils/api-response";
 
 const app = express();
 
@@ -13,19 +14,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
 app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "SalvageGraph API is running",
-  });
+  res.status(200).json(
+    successResponse("SalvageGraph API is running")
+  );
 });
-
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "SalvageGraph API is running",
-  });
-});
-
 app.use(errorMiddleware);
 
 export default app;
