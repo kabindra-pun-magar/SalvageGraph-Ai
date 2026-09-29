@@ -1,3 +1,4 @@
+import { ProjectDetailsPage } from "../features/projects/pages/ProjectDetailsPage";
 import { createBrowserRouter } from "react-router-dom";
 
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
                     {
                         path: "projects",
                         element: <ProjectsPage />,
+                    },
+                    {
+                        path: "projects/:id",
+                        element: <ProjectDetailsPage />,
                     },
                 ],
             },

@@ -2,12 +2,16 @@ import {
     CalendarDays,
     FolderKanban,
     MapPin,
+    Plus,
     Search,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { PageHeader } from "../../../components/common/PageHeader";
 import { Badge } from "../../../components/ui/Badge";
+import { Modal } from "../../../components/ui/Modal";
+import { CreateProjectForm } from "../components/CreateProjectForm";
 import { useProjects } from "../hooks/useProjects";
 
 export function ProjectsPage() {
@@ -17,7 +21,11 @@ export function ProjectsPage() {
         isError,
     } = useProjects();
 
+    const navigate = useNavigate();
+
     const [searchQuery, setSearchQuery] = useState("");
+    const [isCreateModalOpen, setIsCreateModalOpen] =
+        useState(false);
 
     const filteredProjects = useMemo(() => {
         if (!projects) {
@@ -48,10 +56,22 @@ export function ProjectsPage() {
 
     return (
         <div className="space-y-6">
-            <PageHeader
-                title="Projects"
-                description="Manage construction projects and their material requirements."
-            />
+            {/* Page header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <PageHeader
+                    title="Projects"
+                    description="Manage construction projects and their material requirements."
+                />
+
+                <button
+                    type="button"
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+                >
+                    <Plus size={17} strokeWidth={2} />
+                    New Project
+                </button>
+            </div>
 
             {/* Toolbar */}
             <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -117,7 +137,10 @@ export function ProjectsPage() {
                                 {filteredProjects.map((project) => (
                                     <tr
                                         key={project.id}
-                                        className="transition-colors hover:bg-slate-50/60"
+                                        onClick={() =>
+                                            navigate(`/projects/${project.id}`)
+                                        }
+                                        className="cursor-pointer transition-colors hover:bg-slate-50/60"
                                     >
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -197,7 +220,10 @@ export function ProjectsPage() {
                         {filteredProjects.map((project) => (
                             <div
                                 key={project.id}
-                                className="p-4"
+                                onClick={() =>
+                                    navigate(`/projects/${project.id}`)
+                                }
+                                className="cursor-pointer p-4 transition-colors hover:bg-slate-50"
                             >
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex min-w-0 items-center gap-3">
@@ -215,7 +241,10 @@ export function ProjectsPage() {
 
                                             <p className="mt-0.5 text-xs text-slate-400">
                                                 ID:{" "}
-                                                {project.id.slice(0, 8)}
+                                                {project.id.slice(
+                                                    0,
+                                                    8,
+                                                )}
                                             </p>
                                         </div>
                                     </div>
@@ -229,7 +258,6 @@ export function ProjectsPage() {
                                     <div className="flex items-center gap-2 text-sm text-slate-500">
                                         <MapPin
                                             size={15}
-                                            strokeWidth={1.8}
                                             className="text-slate-400"
                                         />
 
@@ -242,7 +270,6 @@ export function ProjectsPage() {
                                     <div className="flex items-center gap-2 text-sm text-slate-500">
                                         <CalendarDays
                                             size={15}
-                                            strokeWidth={1.8}
                                             className="text-slate-400"
                                         />
 
@@ -260,9 +287,31 @@ export function ProjectsPage() {
                 </div>
             ) : (
                 <EmptyProjectsState
-                    hasSearchQuery={searchQuery.trim().length > 0}
+                    hasSearchQuery={
+                        searchQuery.trim().length > 0
+                    }
                 />
             )}
+
+            {/* Create Project Modal */}
+            <Modal
+                open={isCreateModalOpen}
+                onClose={() =>
+                    setIsCreateModalOpen(false)
+                }
+                title="Create project"
+                description="Add a new construction project to SalvageGraph."
+                size="lg"
+            >
+                <CreateProjectForm
+                    onSuccess={() =>
+                        setIsCreateModalOpen(false)
+                    }
+                    onCancel={() =>
+                        setIsCreateModalOpen(false)
+                    }
+                />
+            </Modal>
         </div>
     );
 }
