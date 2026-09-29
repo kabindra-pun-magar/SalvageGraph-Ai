@@ -83,17 +83,20 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                         : "-translate-x-full",
                 )}
             >
+                {/* Brand */}
                 <div className="flex h-16 items-center border-b border-slate-100 px-5">
                     <div>
                         <div className="text-lg font-bold tracking-tight text-slate-900">
                             SalvageGraph
                         </div>
+
                         <div className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
                             Material Intelligence
                         </div>
                     </div>
                 </div>
 
+                {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto px-3 py-5">
                     <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                         Workspace
@@ -124,6 +127,7 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                     </div>
                 </nav>
 
+                {/* Settings */}
                 <div className="border-t border-slate-100 p-3">
                     <NavLink
                         to="/settings"
@@ -137,7 +141,11 @@ export function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                             )
                         }
                     >
-                        <Settings size={18} strokeWidth={1.8} />
+                        <Settings
+                            size={18}
+                            strokeWidth={1.8}
+                        />
+
                         <span>Settings</span>
                     </NavLink>
                 </div>
@@ -171,12 +179,16 @@ function NavigationItem({
                 clsx(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        ? "bg-slate-100 text-slate-900"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
                 )
             }
         >
-            <Icon size={18} strokeWidth={1.8} />
+            <Icon
+                size={18}
+                strokeWidth={1.8}
+            />
+
             <span>{label}</span>
         </NavLink>
     );
