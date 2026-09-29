@@ -1,10 +1,15 @@
-import { ProjectDetailsPage } from "../features/projects/pages/ProjectDetailsPage";
 import { createBrowserRouter } from "react-router-dom";
 
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
+
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { ProtectedRoute } from "../features/auth/components/ProtectedRoute";
+
 import { ProjectsPage } from "../features/projects/pages/ProjectsPage";
+import { ProjectDetailsPage } from "../features/projects/pages/ProjectDetailsPage";
+
+import MaterialsPage from "../features/materials/pages/MaterialsPage";
+import MaterialDetailsPage from "../features/materials/pages/MaterialDetailsPage";
 
 import { MainLayout } from "../layouts/MainLayout";
 
@@ -21,10 +26,13 @@ export const router = createBrowserRouter([
                 path: "/",
                 element: <MainLayout />,
                 children: [
+                    // Dashboard
                     {
                         index: true,
                         element: <DashboardPage />,
                     },
+
+                    // Projects
                     {
                         path: "projects",
                         element: <ProjectsPage />,
@@ -32,6 +40,16 @@ export const router = createBrowserRouter([
                     {
                         path: "projects/:id",
                         element: <ProjectDetailsPage />,
+                    },
+
+                    // Materials
+                    {
+                        path: "materials",
+                        element: <MaterialsPage />,
+                    },
+                    {
+                        path: "materials/:materialId",
+                        element: <MaterialDetailsPage />,
                     },
                 ],
             },
