@@ -5,11 +5,15 @@ interface CreateMaterialInput {
   materialCode: string;
 
   type:
-    | "BRICK"
     | "TILE"
+    | "BRICK"
     | "PIPE"
-    | "STEEL"
+    | "REBAR"
     | "TIMBER"
+    | "CONCRETE"
+    | "SAND"
+    | "WOOD"
+    | "GLASS"
     | "OTHER";
 
   subtype?: string;
@@ -36,11 +40,15 @@ interface UpdateMaterialInput {
   materialCode?: string;
 
   type?:
-    | "BRICK"
     | "TILE"
+    | "BRICK"
     | "PIPE"
-    | "STEEL"
+    | "REBAR"
     | "TIMBER"
+    | "CONCRETE"
+    | "SAND"
+    | "WOOD"
+    | "GLASS"
     | "OTHER";
 
   subtype?: string;

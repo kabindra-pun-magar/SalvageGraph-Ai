@@ -18,8 +18,12 @@ enum MaterialType {
   TILE
   BRICK
   PIPE
-  STEEL
+  REBAR
   TIMBER
+  CONCRETE
+  SAND
+  WOOD
+  GLASS
   OTHER
 }
 
@@ -98,8 +102,8 @@ model Material {
   type         MaterialType
   subtype      String?
 
-  quantity Decimal @db.Decimal(14, 2)
-  unit     String
+  quantity           Decimal  @db.Decimal(14, 2)
+  unit               String
   estimatedUnitValue Decimal? @db.Decimal(14, 2)
 
   length   Float?

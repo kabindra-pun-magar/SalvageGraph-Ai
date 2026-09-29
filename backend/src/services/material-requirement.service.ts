@@ -6,16 +6,22 @@ interface CreateMaterialRequirementInput {
   userId: string;
 
   materialType:
-    | "BRICK"
     | "TILE"
+    | "BRICK"
     | "PIPE"
-    | "STEEL"
+    | "REBAR"
     | "TIMBER"
+    | "CONCRETE"
+    | "SAND"
+    | "WOOD"
+    | "GLASS"
     | "OTHER";
 
   subtype?: string;
+
   quantity: number;
   unit: string;
+
   requiredCondition?: number;
 
   length?: number;
@@ -27,17 +33,23 @@ interface CreateMaterialRequirementInput {
 }
 
 interface UpdateMaterialRequirementInput {
-  materialType?:
-    | "BRICK"
+  materialType:
     | "TILE"
+    | "BRICK"
     | "PIPE"
-    | "STEEL"
+    | "REBAR"
     | "TIMBER"
+    | "CONCRETE"
+    | "SAND"
+    | "WOOD"
+    | "GLASS"
     | "OTHER";
 
   subtype?: string;
+
   quantity?: number;
   unit?: string;
+
   requiredCondition?: number;
 
   length?: number;
