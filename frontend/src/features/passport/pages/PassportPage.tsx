@@ -16,6 +16,7 @@ import { Card } from "../../../components/ui/Card";
 
 import { usePassport } from "../hooks/usePassport";
 import { useCreatePassport } from "../hooks/useCreatePassport";
+import { PassportHistory } from "../components/PassportHistory";
 
 export default function PassportPage() {
     const { materialId } = useParams<{
@@ -330,6 +331,11 @@ export default function PassportPage() {
                             />
                         </div>
                     </Card>
+
+                    {/* Material History */}
+                    <PassportHistory
+                        materialId={passport.materialId}
+                    />
 
                     {/* QR */}
                     <div id="passport-qr">
