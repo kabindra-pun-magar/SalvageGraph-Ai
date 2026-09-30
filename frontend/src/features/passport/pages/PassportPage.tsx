@@ -17,6 +17,7 @@ import { Card } from "../../../components/ui/Card";
 import { usePassport } from "../hooks/usePassport";
 import { useCreatePassport } from "../hooks/useCreatePassport";
 import { PassportHistory } from "../components/PassportHistory";
+import { useGeneratePassportQR } from "../hooks/useGeneratePassportQR";
 
 export default function PassportPage() {
     const { materialId } = useParams<{
@@ -33,6 +34,7 @@ export default function PassportPage() {
     } = usePassport(materialId);
 
     const createPassportMutation = useCreatePassport();
+    const generateQRMutation = useGeneratePassportQR();
 
     const handleCreatePassport = async () => {
         if (!materialId) return;
@@ -45,6 +47,21 @@ export default function PassportPage() {
             await refetch();
         } catch {
             // Error is displayed below the button.
+        }
+    };
+
+    const handleGenerateQR = async () => {
+        if (!passport) return;
+
+        try {
+            await generateQRMutation.mutateAsync({
+                passportId: passport.id,
+                materialId: passport.materialId,
+            });
+
+            await refetch();
+        } catch {
+            // Error is handled by the UI below.
         }
     };
 
@@ -196,7 +213,7 @@ export default function PassportPage() {
                                     label="Condition"
                                     value={
                                         passport.conditionScore !==
-                                        null
+                                            null
                                             ? `${passport.conditionScore}/100`
                                             : "Not assessed"
                                     }
@@ -339,7 +356,12 @@ export default function PassportPage() {
 
                     {/* QR */}
                     <div id="passport-qr">
-                        <PassportQRCode passport={passport} />
+                        <PassportQRCode
+                            passport={passport}
+                            onGenerate={handleGenerateQR}
+                            isGenerating={generateQRMutation.isPending}
+                            isError={generateQRMutation.isError}
+                        />
                     </div>
 
                     {/* Metadata */}
@@ -429,10 +451,16 @@ function PassportEmptyState({
 
 function PassportQRCode({
     passport,
+    onGenerate,
+    isGenerating,
+    isError,
 }: {
     passport: {
         qrCode: string | null;
     };
+    onGenerate: () => void;
+    isGenerating: boolean;
+    isError: boolean;
 }) {
     return (
         <Card>
@@ -475,8 +503,32 @@ function PassportQRCode({
                         </p>
 
                         <p className="mt-1 text-xs text-slate-400">
-                            QR generation will be connected next.
+                            Generate a QR code for this material
+                            passport.
                         </p>
+
+                        {isError && (
+                            <p className="mt-3 text-sm text-red-600">
+                                Unable to generate QR code. Please try
+                                again.
+                            </p>
+                        )}
+
+                        <Button
+                            type="button"
+                            className="mt-4"
+                            disabled={isGenerating}
+                            onClick={onGenerate}
+                        >
+                            <QrCode
+                                size={16}
+                                className="mr-2"
+                            />
+
+                            {isGenerating
+                                ? "Generating QR Code..."
+                                : "Generate QR Code"}
+                        </Button>
                     </div>
                 )}
             </div>

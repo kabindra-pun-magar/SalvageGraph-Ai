@@ -1,8 +1,4 @@
-import {
-    useMutation,
-    useQueryClient,
-} from "@tanstack/react-query";
-
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { generatePassportQRCode } from "../services/passportService";
 
 interface GeneratePassportQRVariables {
@@ -14,9 +10,7 @@ export function useGeneratePassportQR() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({
-            passportId,
-        }: GeneratePassportQRVariables) =>
+        mutationFn: ({ passportId }: GeneratePassportQRVariables) =>
             generatePassportQRCode(passportId),
 
         onSuccess: (passport) => {
@@ -26,10 +20,7 @@ export function useGeneratePassportQR() {
             );
 
             queryClient.invalidateQueries({
-                queryKey: [
-                    "material-history",
-                    passport.materialId,
-                ],
+                queryKey: ["material-history", passport.materialId],
             });
         },
     });
