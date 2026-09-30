@@ -127,6 +127,19 @@ export default function MaterialDetailsPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+                    <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                        navigate(
+                            `/materials/${material.id}/passport`
+                        )
+                    }
+                >
+                    <FileText size={16} className="mr-2" />
+                    Passport
+                </Button>
+                
                     <button
                         type="button"
                         onClick={() =>
