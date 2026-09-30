@@ -10,6 +10,8 @@ import { ProjectDetailsPage } from "../features/projects/pages/ProjectDetailsPag
 
 import MaterialsPage from "../features/materials/pages/MaterialsPage";
 import MaterialDetailsPage from "../features/materials/pages/MaterialDetailsPage";
+import MaterialRegistrationPage from "../features/materials/pages/MaterialRegistrationPage";
+import MaterialEditPage from "../features/materials/pages/MaterialEditPage";
 
 import { MainLayout } from "../layouts/MainLayout";
 
@@ -46,6 +48,14 @@ export const router = createBrowserRouter([
                     {
                         path: "materials",
                         element: <MaterialsPage />,
+                    },
+                    {
+                        path: "materials/new",
+                        element: <MaterialRegistrationPage />,
+                    },
+                    {
+                        path: "materials/:materialId/edit",
+                        element: <MaterialEditPage />,
                     },
                     {
                         path: "materials/:materialId",
