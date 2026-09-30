@@ -6,6 +6,7 @@ import {
   updatePassport,
   getMaterialHistory,
   generatePassportQRCode,
+  getPublicPassportByCode,
 } from "../services/passport.service";
 
 import { ApiError } from "../utils/api-error";
@@ -179,6 +180,40 @@ export const generatePassportQRCodeController = async (
     res.status(200).json(
       successResponse(
         "Passport QR code generated successfully",
+        passport
+      )
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPublicPassportController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const passportCode = req.params.passportCode;
+
+    if (
+      typeof passportCode !== "string" ||
+      passportCode.length === 0
+    ) {
+      throw new ApiError(
+        400,
+        "Passport code is required"
+      );
+    }
+
+    const passport =
+      await getPublicPassportByCode(
+        passportCode
+      );
+
+    res.status(200).json(
+      successResponse(
+        "Material passport retrieved successfully",
         passport
       )
     );

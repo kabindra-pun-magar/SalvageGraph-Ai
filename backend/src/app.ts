@@ -16,6 +16,7 @@ import materialRequirementRoutes from "./routes/material-requirement.routes";
 import matchingRoutes from "./routes/matching.routes";
 import recommendationRoutes from "./routes/recommendation.routes";
 import dashboardRoutes from "./routes/dashboard.routes";
+import publicPassportRoutes from "./routes/public-passport.routes";
 
 
 const app = express();
@@ -65,6 +66,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 
 app.use("/api/materials", materialRoutes);
+
+app.use("/api", publicPassportRoutes);
 
 app.use("/api", passportRoutes);
 

@@ -329,3 +329,34 @@ export const generatePassportQRCode = async (
 
   return updatedPassport;
 };
+
+export const getPublicPassportByCode = async (
+  passportCode: string
+) => {
+  const passport =
+    await prisma.materialPassport.findUnique({
+      where: {
+        passportCode,
+      },
+    });
+
+  if (!passport) {
+    throw new ApiError(
+      404,
+      "Material passport not found"
+    );
+  }
+
+  return {
+    passportCode: passport.passportCode,
+    materialType: passport.materialType,
+    subtype: passport.subtype,
+    dimensions: passport.dimensions,
+    quantity: passport.quantity,
+    unit: passport.unit,
+    conditionScore: passport.conditionScore,
+    source: passport.source,
+    location: passport.location,
+    registeredDate: passport.registeredDate,
+  };
+};
