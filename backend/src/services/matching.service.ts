@@ -846,12 +846,16 @@ export const runMatching = async (
 
                     if (existingMatch) {
                         savedMatch =
-                            await tx.match.update({
-                                where: {
-                                    id: existingMatch.id,
-                                },
+                            await tx.match.create({
 
                                 data: {
+
+                                    materialId:
+                                        match.materialId,
+
+                                    requirementId:
+                                        match.requirementId,
+
                                     compatibilityScore:
                                         match.compatibilityScore,
 
@@ -878,7 +882,20 @@ export const runMatching = async (
 
                                     status:
                                         "CANDIDATE",
+
                                 },
+
+
+                                include: {
+
+                                    material: true,
+
+                                    requirement: true,
+
+                                    recommendation: true,
+
+                                }
+
                             });
                     } else {
                         savedMatch =
@@ -1078,17 +1095,28 @@ export const getMatchesForRequirement =
             );
         }
 
-        const matches =
-            await prisma.match.findMany({
-                where: {
-                    requirementId,
-                },
+        const matches = await prisma.match.findMany({
 
-                include: {
-                    material: true,
-                    recommendation: true,
-                },
-            });
+            where: {
+                requirementId
+            },
+
+
+            include: {
+
+                material: true,
+
+                requirement: true,
+
+                recommendation: true,
+
+            },
+
+            orderBy: {
+                suitabilityScore: "desc"
+            }
+
+        });
 
         return matches.sort(
             (a, b) =>
