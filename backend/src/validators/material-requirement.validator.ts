@@ -1,11 +1,15 @@
 import { z } from "zod";
 
 const materialTypeSchema = z.enum([
-  "BRICK",
   "TILE",
+  "BRICK",
   "PIPE",
-  "STEEL",
+  "REBAR",
   "TIMBER",
+  "CONCRETE",
+  "SAND",
+  "WOOD",
+  "GLASS",
   "OTHER",
 ]);
 
