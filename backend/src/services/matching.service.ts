@@ -6,6 +6,12 @@ import {
 import { prisma } from "../config/database";
 import { ApiError } from "../utils/api-error";
 
+/*
+ * ============================================================
+ * STEP 1: DIMENSION SCORE
+ * ============================================================
+ */
+
 const calculateDimensionScore = (
     materialValue: number | null,
     requiredValue: number | null
@@ -28,17 +34,34 @@ const calculateDimensionScore = (
         return 100;
     }
 
+    if (requiredValue === 0) {
+        return 0;
+    }
+
     const difference =
         Math.abs(materialValue - requiredValue) /
         requiredValue;
 
-    return Math.max(0, 100 - difference * 100);
+    return Math.max(
+        0,
+        100 - difference * 100
+    );
 };
+
+/*
+ * ============================================================
+ * STEP 1: QUANTITY SCORE
+ * ============================================================
+ */
 
 const calculateQuantityScore = (
     materialQuantity: number,
     requiredQuantity: number
 ): number => {
+    if (requiredQuantity <= 0) {
+        return 100;
+    }
+
     if (materialQuantity >= requiredQuantity) {
         return 100;
     }
@@ -48,6 +71,12 @@ const calculateQuantityScore = (
         (materialQuantity / requiredQuantity) * 100
     );
 };
+
+/*
+ * ============================================================
+ * STEP 1: CONDITION SCORE
+ * ============================================================
+ */
 
 const calculateConditionScore = (
     materialCondition: number | null,
@@ -67,6 +96,10 @@ const calculateConditionScore = (
         return 0;
     }
 
+    if (requiredCondition <= 0) {
+        return 100;
+    }
+
     if (materialCondition >= requiredCondition) {
         return 100;
     }
@@ -77,56 +110,359 @@ const calculateConditionScore = (
     );
 };
 
-const calculateSuitabilityScore = (
-    compatibilityScore: number,
-    conditionScore: number,
-    quantityScore: number,
-    dimensionScore: number
+/*
+ * ============================================================
+ * STEP 2: COMPATIBILITY
+ * ============================================================
+ *
+ * Type       = 50%
+ * Dimensions = 50%
+ */
+
+const calculateCompatibilityScore = (
+    material: {
+        type: string;
+        length: number | null;
+        width: number | null;
+        height: number | null;
+        diameter: number | null;
+    },
+    requirement: {
+        materialType: string;
+        length: number | null;
+        width: number | null;
+        height: number | null;
+        diameter: number | null;
+    }
 ): number => {
+    const typeScore =
+        material.type === requirement.materialType
+            ? 100
+            : 0;
+
+    const dimensionScores: number[] = [];
+
+    if (
+        requirement.length !== null &&
+        requirement.length !== undefined
+    ) {
+        dimensionScores.push(
+            calculateDimensionScore(
+                material.length,
+                requirement.length
+            )
+        );
+    }
+
+    if (
+        requirement.width !== null &&
+        requirement.width !== undefined
+    ) {
+        dimensionScores.push(
+            calculateDimensionScore(
+                material.width,
+                requirement.width
+            )
+        );
+    }
+
+    if (
+        requirement.height !== null &&
+        requirement.height !== undefined
+    ) {
+        dimensionScores.push(
+            calculateDimensionScore(
+                material.height,
+                requirement.height
+            )
+        );
+    }
+
+    if (
+        requirement.diameter !== null &&
+        requirement.diameter !== undefined
+    ) {
+        dimensionScores.push(
+            calculateDimensionScore(
+                material.diameter,
+                requirement.diameter
+            )
+        );
+    }
+
+    const dimensionScore =
+        dimensionScores.length > 0
+            ? dimensionScores.reduce(
+                  (sum, score) => sum + score,
+                  0
+              ) / dimensionScores.length
+            : 100;
+
     return (
-        compatibilityScore * 0.3 +
-        conditionScore * 0.25 +
-        quantityScore * 0.25 +
-        dimensionScore * 0.2
+        typeScore * 0.5 +
+        dimensionScore * 0.5
     );
 };
 
+/*
+ * ============================================================
+ * STEP 3: SUITABILITY
+ * ============================================================
+ *
+ * Compatibility = 40%
+ * Condition     = 30%
+ * Quantity      = 30%
+ */
+
+const calculateSuitabilityScore = (
+    compatibilityScore: number,
+    conditionScore: number,
+    quantityScore: number
+): number => {
+    return (
+        compatibilityScore * 0.4 +
+        conditionScore * 0.3 +
+        quantityScore * 0.3
+    );
+};
+
+/*
+ * ============================================================
+ * STEP 4: LOGISTICS
+ * ============================================================
+ */
+
+const calculateLogistics = (
+    materialLatitude: number | null,
+    materialLongitude: number | null,
+    projectLatitude: number | null,
+    projectLongitude: number | null
+): {
+    distanceKm: number | null;
+    transportCost: number | null;
+} => {
+    if (
+        materialLatitude === null ||
+        materialLatitude === undefined ||
+        materialLongitude === null ||
+        materialLongitude === undefined ||
+        projectLatitude === null ||
+        projectLatitude === undefined ||
+        projectLongitude === null ||
+        projectLongitude === undefined
+    ) {
+        return {
+            distanceKm: null,
+            transportCost: null,
+        };
+    }
+
+    const distanceKm = calculateDistanceKm(
+        materialLatitude,
+        materialLongitude,
+        projectLatitude,
+        projectLongitude
+    );
+
+    const transportCost =
+        calculateTransportCost(distanceKm);
+
+    return {
+        distanceKm,
+        transportCost,
+    };
+};
+
+/*
+ * ============================================================
+ * STEP 5: ECONOMIC ANALYSIS
+ * ============================================================
+ */
+
+const calculateEconomicScore = (
+    economicBenefit: number | null
+): number => {
+    if (
+        economicBenefit === null ||
+        economicBenefit <= 0
+    ) {
+        return 0;
+    }
+
+    /*
+     * Economic benefit is converted to a
+     * normalized 0-100 score.
+     *
+     * This cap is an MVP normalization mechanism,
+     * not a research-validated economic threshold.
+     */
+    return Math.min(
+        100,
+        economicBenefit / 100
+    );
+};
+
+/*
+ * ============================================================
+ * STEP 6: ENVIRONMENTAL ANALYSIS
+ * ============================================================
+ *
+ * Environmental benefit is represented as a
+ * transparent structured object.
+ *
+ * Exact material-specific emission factors should
+ * later come from validated datasets/research.
+ */
+
+const ENVIRONMENTAL_FACTORS: Record<
+    string,
+    number
+> = {
+    TILE: 1.0,
+    BRICK: 1.0,
+    PIPE: 1.0,
+    REBAR: 1.0,
+    TIMBER: 1.0,
+    CONCRETE: 1.0,
+    SAND: 1.0,
+    WOOD: 1.0,
+    GLASS: 1.0,
+    OTHER: 1.0,
+};
+
+const calculateEnvironmentalBenefit = (
+    materialType: string,
+    quantity: number,
+    distanceKm: number | null
+) => {
+    const environmentalFactor =
+        ENVIRONMENTAL_FACTORS[
+            materialType
+        ] ?? 1;
+
+    const estimatedAvoidedMaterialImpact =
+        quantity * environmentalFactor;
+
+    const transportImpact =
+        distanceKm !== null
+            ? distanceKm * quantity
+            : null;
+
+    /*
+     * The current score is intentionally
+     * transparent and provisional.
+     */
+    const environmentalScore =
+        distanceKm === null
+            ? 50
+            : Math.max(
+                  0,
+                  Math.min(
+                      100,
+                      100 -
+                          distanceKm * 2
+                  )
+              );
+
+    return {
+        reusedQuantity: quantity,
+        materialType,
+        environmentalFactor,
+        estimatedAvoidedMaterialImpact,
+        distanceKm,
+        transportImpact,
+        environmentalScore: Number(
+            environmentalScore.toFixed(2)
+        ),
+        methodology:
+            "Provisional MVP environmental model. Material-specific lifecycle emission factors should be calibrated using validated research data.",
+    };
+};
+
+/*
+ * ============================================================
+ * STEP 7: FINAL RANKING
+ * ============================================================
+ *
+ * Current MVP:
+ *
+ * Suitability       = 50%
+ * Economic benefit  = 30%
+ * Environmental     = 20%
+ *
+ * These weights are configurable and should
+ * eventually be experimentally optimized or
+ * learned by the AI ranking model.
+ */
+
+const calculateFinalRankingScore = (
+    suitabilityScore: number,
+    economicScore: number,
+    environmentalScore: number
+): number => {
+    return Number(
+        (
+            suitabilityScore * 0.5 +
+            economicScore * 0.3 +
+            environmentalScore * 0.2
+        ).toFixed(2)
+    );
+};
+
+/*
+ * ============================================================
+ * STEP 1: CANDIDATE FILTERING
+ * ============================================================
+ */
+
 const filterMatchingCandidates = (
-    materials: Awaited<ReturnType<typeof prisma.material.findMany>>,
+    materials: Awaited<
+        ReturnType<typeof prisma.material.findMany>
+    >,
     requirement: {
         materialType: string;
         quantity: unknown;
         requiredCondition: number | null;
     }
 ) => {
-    const requiredQuantity = Number(requirement.quantity);
+    const requiredQuantity = Number(
+        requirement.quantity
+    );
 
     return materials.filter((material) => {
-        // Hard filter 1: material must be available
         if (material.status !== "AVAILABLE") {
             return false;
         }
 
-        // Hard filter 2: material type must match
-        if (material.type !== requirement.materialType) {
-            return false;
-        }
-
-        // Hard filter 3: quantity must be sufficient
-        const materialQuantity = Number(material.quantity);
-
-        if (materialQuantity < requiredQuantity) {
-            return false;
-        }
-
-        // Hard filter 4: condition must satisfy minimum requirement
         if (
-            requirement.requiredCondition !== null &&
-            requirement.requiredCondition !== undefined
+            material.type !==
+            requirement.materialType
+        ) {
+            return false;
+        }
+
+        const materialQuantity = Number(
+            material.quantity
+        );
+
+        if (
+            materialQuantity <
+            requiredQuantity
+        ) {
+            return false;
+        }
+
+        if (
+            requirement.requiredCondition !==
+                null &&
+            requirement.requiredCondition !==
+                undefined
         ) {
             if (
-                material.conditionScore === null ||
-                material.conditionScore === undefined
+                material.conditionScore ===
+                    null ||
+                material.conditionScore ===
+                    undefined
             ) {
                 return false;
             }
@@ -142,6 +478,12 @@ const filterMatchingCandidates = (
         return true;
     });
 };
+
+/*
+ * ============================================================
+ * RUN MATCHING
+ * ============================================================
+ */
 
 export const runMatching = async (
     requirementId: string,
@@ -164,319 +506,633 @@ export const runMatching = async (
         );
     }
 
-    if (requirement.project.ownerId !== userId) {
+    if (
+        requirement.project.ownerId !==
+        userId
+    ) {
         throw new ApiError(
             403,
             "You do not have permission to run matching for this requirement"
         );
     }
 
-    const materials = await prisma.material.findMany({
-        where: {
-            registeredById: userId,
-            status: "AVAILABLE",
-        },
-    });
+    const materials =
+        await prisma.material.findMany({
+            where: {
+                registeredById: userId,
+                status: "AVAILABLE",
+            },
+        });
 
-    const candidates = materials.filter((material) => {
-        // Hard filter 1: material type
-        if (material.type !== requirement.materialType) {
-            return false;
-        }
-
-        // Hard filter 2: quantity
-        const materialQuantity = Number(
-            material.quantity
+    /*
+     * STEP 1
+     */
+    const candidates =
+        filterMatchingCandidates(
+            materials,
+            requirement
         );
 
-        const requiredQuantity = Number(
-            requirement.quantity
-        );
+    const matches = candidates.map(
+        (material) => {
+            /*
+             * STEP 2
+             */
+            const compatibilityScore =
+                calculateCompatibilityScore(
+                    material,
+                    requirement
+                );
 
-        if (materialQuantity < requiredQuantity) {
-            return false;
-        }
+            /*
+             * STEP 3
+             */
+            const quantityScore =
+                calculateQuantityScore(
+                    Number(material.quantity),
+                    Number(
+                        requirement.quantity
+                    )
+                );
 
-        // Hard filter 3: condition
-        if (
-            requirement.requiredCondition !== null &&
-            requirement.requiredCondition !== undefined &&
-            material.conditionScore !== null &&
-            material.conditionScore !== undefined &&
-            material.conditionScore <
-            requirement.requiredCondition
-        ) {
-            return false;
-        }
+            const conditionScore =
+                calculateConditionScore(
+                    material.conditionScore,
+                    requirement.requiredCondition
+                );
 
-        return true;
-    });
+            const lengthScore =
+                calculateDimensionScore(
+                    material.length,
+                    requirement.length
+                );
 
-    const matches = candidates.map((material) => {
-        const compatibilityScore =
-            material.type === requirement.materialType
-                ? 100
-                : 0;
+            const widthScore =
+                calculateDimensionScore(
+                    material.width,
+                    requirement.width
+                );
 
-        const quantityScore = calculateQuantityScore(
-            Number(material.quantity),
-            Number(requirement.quantity)
-        );
+            const heightScore =
+                calculateDimensionScore(
+                    material.height,
+                    requirement.height
+                );
 
-        const conditionScore =
-            calculateConditionScore(
-                material.conditionScore,
-                requirement.requiredCondition
-            );
+            const diameterScore =
+                calculateDimensionScore(
+                    material.diameter,
+                    requirement.diameter
+                );
 
-        const lengthScore = calculateDimensionScore(
-            material.length,
-            requirement.length
-        );
+            const dimensionScores: number[] =
+                [];
 
-        const widthScore = calculateDimensionScore(
-            material.width,
-            requirement.width
-        );
+            if (
+                requirement.length !== null &&
+                requirement.length !==
+                    undefined
+            ) {
+                dimensionScores.push(
+                    lengthScore
+                );
+            }
 
-        const heightScore = calculateDimensionScore(
-            material.height,
-            requirement.height
-        );
+            if (
+                requirement.width !== null &&
+                requirement.width !==
+                    undefined
+            ) {
+                dimensionScores.push(
+                    widthScore
+                );
+            }
 
-        const diameterScore = calculateDimensionScore(
-            material.diameter,
-            requirement.diameter
-        );
+            if (
+                requirement.height !== null &&
+                requirement.height !==
+                    undefined
+            ) {
+                dimensionScores.push(
+                    heightScore
+                );
+            }
 
-        const dimensionScores: number[] = [];
+            if (
+                requirement.diameter !==
+                    null &&
+                requirement.diameter !==
+                    undefined
+            ) {
+                dimensionScores.push(
+                    diameterScore
+                );
+            }
 
-        if (
-            requirement.length !== null &&
-            requirement.length !== undefined
-        ) {
-            dimensionScores.push(lengthScore);
-        }
+            const dimensionScore =
+                dimensionScores.length > 0
+                    ? dimensionScores.reduce(
+                          (sum, score) =>
+                              sum + score,
+                          0
+                      ) /
+                      dimensionScores.length
+                    : 100;
 
-        if (
-            requirement.width !== null &&
-            requirement.width !== undefined
-        ) {
-            dimensionScores.push(widthScore);
-        }
+            const suitabilityScore =
+                calculateSuitabilityScore(
+                    compatibilityScore,
+                    conditionScore,
+                    quantityScore
+                );
 
-        if (
-            requirement.height !== null &&
-            requirement.height !== undefined
-        ) {
-            dimensionScores.push(heightScore);
-        }
-
-        if (
-            requirement.diameter !== null &&
-            requirement.diameter !== undefined
-        ) {
-            dimensionScores.push(diameterScore);
-        }
-
-        const dimensionScore =
-            dimensionScores.length > 0
-                ? dimensionScores.reduce(
-                    (sum, score) => sum + score,
-                    0
-                ) / dimensionScores.length
-                : 100;
-
-        /*
-         * GIS calculation
-         */
-        let distanceKm: number | null = null;
-        let transportCost: number | null = null;
-
-        if (
-            material.latitude !== null &&
-            material.latitude !== undefined &&
-            material.longitude !== null &&
-            material.longitude !== undefined &&
-            requirement.project.latitude !== null &&
-            requirement.project.latitude !== undefined &&
-            requirement.project.longitude !== null &&
-            requirement.project.longitude !== undefined
-        ) {
-            distanceKm = calculateDistanceKm(
+            /*
+             * STEP 4
+             */
+            const {
+                distanceKm,
+                transportCost,
+            } = calculateLogistics(
                 material.latitude,
                 material.longitude,
                 requirement.project.latitude,
                 requirement.project.longitude
             );
 
-            transportCost =
-                calculateTransportCost(distanceKm);
-        }
+            /*
+             * STEP 5
+             */
+            const economicBenefit =
+                calculateEconomicBenefit(
+                    Number(
+                        material.quantity
+                    ),
+                    material.estimatedUnitValue !==
+                        null
+                        ? Number(
+                              material.estimatedUnitValue
+                          )
+                        : null,
+                    transportCost ?? 0
+                );
 
-        /*
-         * Economic feasibility calculation
-         */
-        const economicBenefit =
-            calculateEconomicBenefit(
-                Number(material.quantity),
-                material.estimatedUnitValue !== null
-                    ? Number(material.estimatedUnitValue)
-                    : null,
-                transportCost ?? 0
-            );
+            const economicScore =
+                calculateEconomicScore(
+                    economicBenefit
+                );
 
-        const suitabilityScore =
-            calculateSuitabilityScore(
+            /*
+             * STEP 6
+             */
+            const environmentalBenefit =
+                calculateEnvironmentalBenefit(
+                    material.type,
+                    Number(material.quantity),
+                    distanceKm
+                );
+
+            /*
+             * STEP 7
+             */
+            const finalRankingScore =
+                calculateFinalRankingScore(
+                    suitabilityScore,
+                    economicScore,
+                    environmentalBenefit.environmentalScore
+                );
+
+            return {
+                materialId:
+                    material.id,
+
+                requirementId:
+                    requirement.id,
+
                 compatibilityScore,
+
                 conditionScore,
+
                 quantityScore,
-                dimensionScore
-            );
 
-        return {
-            materialId: material.id,
-            requirementId: requirement.id,
-            compatibilityScore,
-            conditionScore,
-            quantityScore,
-            dimensionScore,
-            distanceKm,
-            transportCost,
-            economicBenefit,
-            suitabilityScore,
-        };
-    });
+                dimensionScore,
 
+                distanceKm,
+
+                transportCost,
+
+                economicBenefit,
+
+                suitabilityScore,
+
+                economicScore,
+
+                environmentalBenefit,
+
+                finalRankingScore,
+            };
+        }
+    );
+
+    /*
+     * STEP 7:
+     * Final ranking
+     */
     matches.sort(
         (a, b) =>
-            b.suitabilityScore -
-            a.suitabilityScore
+            b.finalRankingScore -
+            a.finalRankingScore
     );
 
-    const createdMatches = await prisma.$transaction(
-        async (tx) => {
-            const results = [];
+    /*
+     * STEP 8:
+     * Save matches and create/update
+     * recommendations for human verification.
+     */
+    const createdMatches =
+        await prisma.$transaction(
+            async (tx) => {
+                const results = [];
 
-            for (const match of matches) {
-                const existingMatch =
-                    await tx.match.findFirst({
-                        where: {
-                            materialId: match.materialId,
-                            requirementId:
-                                match.requirementId,
-                        },
-                    });
+                for (let index = 0; index < matches.length; index++) {
+                    const match = matches[index];
 
-                if (existingMatch) {
-                    const updatedMatch =
-                        await tx.match.update({
+                    const existingMatch =
+                        await tx.match.findFirst({
                             where: {
-                                id: existingMatch.id,
-                            },
-                            data: {
-                                compatibilityScore:
-                                    match.compatibilityScore,
-                                conditionScore:
-                                    match.conditionScore,
-                                quantityScore:
-                                    match.quantityScore,
-                                dimensionScore:
-                                    match.dimensionScore,
-
-                                distanceKm:
-                                    match.distanceKm,
-                                transportCost:
-                                    match.transportCost,
-                                economicBenefit:
-                                    match.economicBenefit,
-
-                                suitabilityScore:
-                                    match.suitabilityScore,
-                                status: "CANDIDATE",
-                            },
-                        });
-
-                    results.push(updatedMatch);
-                } else {
-                    const createdMatch =
-                        await tx.match.create({
-                            data: {
                                 materialId:
                                     match.materialId,
+
                                 requirementId:
                                     match.requirementId,
-
-                                compatibilityScore:
-                                    match.compatibilityScore,
-                                conditionScore:
-                                    match.conditionScore,
-                                quantityScore:
-                                    match.quantityScore,
-                                dimensionScore:
-                                    match.dimensionScore,
-
-                                distanceKm:
-                                    match.distanceKm,
-                                transportCost:
-                                    match.transportCost,
-                                economicBenefit:
-                                    match.economicBenefit,
-
-                                suitabilityScore:
-                                    match.suitabilityScore,
-                                status: "CANDIDATE",
                             },
                         });
 
-                    results.push(createdMatch);
-                }
-            }
+                    let savedMatch;
 
-            return results;
-        }
-    );
+                    if (existingMatch) {
+                        savedMatch =
+                            await tx.match.update({
+                                where: {
+                                    id: existingMatch.id,
+                                },
+
+                                data: {
+                                    compatibilityScore:
+                                        match.compatibilityScore,
+
+                                    conditionScore:
+                                        match.conditionScore,
+
+                                    quantityScore:
+                                        match.quantityScore,
+
+                                    dimensionScore:
+                                        match.dimensionScore,
+
+                                    distanceKm:
+                                        match.distanceKm,
+
+                                    transportCost:
+                                        match.transportCost,
+
+                                    economicBenefit:
+                                        match.economicBenefit,
+
+                                    suitabilityScore:
+                                        match.suitabilityScore,
+
+                                    status:
+                                        "CANDIDATE",
+                                },
+                            });
+                    } else {
+                        savedMatch =
+                            await tx.match.create({
+                                data: {
+                                    materialId:
+                                        match.materialId,
+
+                                    requirementId:
+                                        match.requirementId,
+
+                                    compatibilityScore:
+                                        match.compatibilityScore,
+
+                                    conditionScore:
+                                        match.conditionScore,
+
+                                    quantityScore:
+                                        match.quantityScore,
+
+                                    dimensionScore:
+                                        match.dimensionScore,
+
+                                    distanceKm:
+                                        match.distanceKm,
+
+                                    transportCost:
+                                        match.transportCost,
+
+                                    economicBenefit:
+                                        match.economicBenefit,
+
+                                    suitabilityScore:
+                                        match.suitabilityScore,
+
+                                    status:
+                                        "CANDIDATE",
+                                },
+                            });
+                    }
+
+                    /*
+                     * Create or update recommendation.
+                     */
+                    const explanation =
+                        [
+                            `Compatibility: ${match.compatibilityScore.toFixed(2)}`,
+                            `Condition: ${match.conditionScore.toFixed(2)}`,
+                            `Quantity: ${match.quantityScore.toFixed(2)}`,
+                            `Distance: ${
+                                match.distanceKm !== null
+                                    ? `${match.distanceKm.toFixed(2)} km`
+                                    : "Unavailable"
+                            }`,
+                            `Economic benefit: ${
+                                match.economicBenefit !== null
+                                    ? match.economicBenefit.toFixed(2)
+                                    : "Unavailable"
+                            }`,
+                            `Environmental score: ${match.environmentalBenefit.environmentalScore.toFixed(2)}`,
+                            `Final ranking score: ${match.finalRankingScore.toFixed(2)}`,
+                        ].join(" | ");
+
+                    const existingRecommendation =
+                        await tx.recommendation.findUnique(
+                            {
+                                where: {
+                                    matchId:
+                                        savedMatch.id,
+                                },
+                            }
+                        );
+
+                    let recommendation;
+
+                    if (
+                        existingRecommendation
+                    ) {
+                        recommendation =
+                            await tx.recommendation.update(
+                                {
+                                    where: {
+                                        matchId:
+                                            savedMatch.id,
+                                    },
+
+                                    data: {
+                                        score:
+                                            match.finalRankingScore,
+
+                                        explanation,
+
+                                        estimatedSaving:
+                                            match.economicBenefit,
+
+                                        environmentalBenefit:
+                                            match.environmentalBenefit,
+
+                                        /*
+                                         * Re-running matching
+                                         * returns the recommendation
+                                         * to human review.
+                                         */
+                                        status:
+                                            "PENDING",
+
+                                        verifiedBy:
+                                            null,
+
+                                        verificationNote:
+                                            null,
+                                    },
+                                }
+                            );
+                    } else {
+                        recommendation =
+                            await tx.recommendation.create(
+                                {
+                                    data: {
+                                        matchId:
+                                            savedMatch.id,
+
+                                        score:
+                                            match.finalRankingScore,
+
+                                        explanation,
+
+                                        estimatedSaving:
+                                            match.economicBenefit,
+
+                                        environmentalBenefit:
+                                            match.environmentalBenefit,
+
+                                        status:
+                                            "PENDING",
+                                    },
+                                }
+                            );
+                    }
+
+                    results.push({
+                        rank: index + 1,
+                        ...savedMatch,
+                        recommendation,
+                        environmentalBenefit:
+                            match.environmentalBenefit,
+                        economicScore:
+                            match.economicScore,
+                        finalRankingScore:
+                            match.finalRankingScore,
+                    });
+                }
+
+                return results;
+            }
+        );
 
     return createdMatches;
 };
 
-export const getMatchesForRequirement = async (
-    requirementId: string,
-    userId: string
-) => {
-    const requirement =
-        await prisma.materialRequirement.findUnique({
-            where: {
-                id: requirementId,
-            },
-            include: {
-                project: true,
-            },
-        });
+/*
+ * ============================================================
+ * GET MATCHES
+ * ============================================================
+ */
 
-    if (!requirement) {
-        throw new ApiError(
-            404,
-            "Material requirement not found"
+export const getMatchesForRequirement =
+    async (
+        requirementId: string,
+        userId: string
+    ) => {
+        const requirement =
+            await prisma.materialRequirement.findUnique(
+                {
+                    where: {
+                        id: requirementId,
+                    },
+
+                    include: {
+                        project: true,
+                    },
+                }
+            );
+
+        if (!requirement) {
+            throw new ApiError(
+                404,
+                "Material requirement not found"
+            );
+        }
+
+        if (
+            requirement.project.ownerId !==
+            userId
+        ) {
+            throw new ApiError(
+                403,
+                "You do not have permission to access these matches"
+            );
+        }
+
+        const matches =
+            await prisma.match.findMany({
+                where: {
+                    requirementId,
+                },
+
+                include: {
+                    material: true,
+                    recommendation: true,
+                },
+            });
+
+        return matches.sort(
+            (a, b) =>
+                (b.recommendation?.score ?? 0) -
+                (a.recommendation?.score ?? 0)
         );
-    }
+    };
 
-    if (requirement.project.ownerId !== userId) {
-        throw new ApiError(
-            403,
-            "You do not have permission to access these matches"
+/*
+ * ============================================================
+ * STEP 8: HUMAN VERIFICATION
+ * ============================================================
+ */
+
+export const verifyMatch =
+    async (
+        matchId: string,
+        userId: string,
+        decision:
+            | "ACCEPTED"
+            | "REJECTED"
+            | "NEEDS_INSPECTION",
+        note?: string
+    ) => {
+        const match =
+            await prisma.match.findUnique({
+                where: {
+                    id: matchId,
+                },
+
+                include: {
+                    requirement: {
+                        include: {
+                            project: true,
+                        },
+                    },
+
+                    recommendation: true,
+                },
+            });
+
+        if (!match) {
+            throw new ApiError(
+                404,
+                "Match not found"
+            );
+        }
+
+        if (
+            match.requirement.project.ownerId !==
+            userId
+        ) {
+            throw new ApiError(
+                403,
+                "You do not have permission to verify this match"
+            );
+        }
+
+        const matchStatus =
+            decision === "ACCEPTED"
+                ? "ACCEPTED"
+                : decision === "REJECTED"
+                  ? "REJECTED"
+                  : "EVALUATED";
+
+        const recommendationStatus =
+            decision === "ACCEPTED"
+                ? "APPROVED"
+                : decision === "REJECTED"
+                  ? "REJECTED"
+                  : "NEEDS_INSPECTION";
+
+        return prisma.$transaction(
+            async (tx) => {
+                const updatedMatch =
+                    await tx.match.update({
+                        where: {
+                            id: matchId,
+                        },
+
+                        data: {
+                            status:
+                                matchStatus,
+                        },
+
+                        include: {
+                            material: true,
+                            recommendation:
+                                true,
+                        },
+                    });
+
+                if (
+                    match.recommendation
+                ) {
+                    await tx.recommendation.update(
+                        {
+                            where: {
+                                matchId,
+                            },
+
+                            data: {
+                                status:
+                                    recommendationStatus,
+
+                                verifiedBy:
+                                    userId,
+
+                                verificationNote:
+                                    note ??
+                                    null,
+                            },
+                        }
+                    );
+                }
+
+                return updatedMatch;
+            }
         );
-    }
-
-    return prisma.match.findMany({
-        where: {
-            requirementId,
-        },
-        include: {
-            material: true,
-        },
-        orderBy: {
-            suitabilityScore: "desc",
-        },
-    });
-};
+    };

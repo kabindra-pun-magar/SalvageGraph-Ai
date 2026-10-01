@@ -3,8 +3,9 @@ import { Router } from "express";
 import { authenticate } from "../middleware/auth.middleware";
 
 import {
-  runMatchingController,
-  getMatchesController,
+    runMatchingController,
+    getMatchesController,
+    verifyMatchController,
 } from "../controllers/matching.controller";
 
 const router = Router();
@@ -19,6 +20,11 @@ router.post(
 router.get(
   "/requirements/:requirementId/matches",
   getMatchesController
+);
+
+router.patch(
+    "/matches/:matchId/verify",
+    verifyMatchController
 );
 
 export default router;
