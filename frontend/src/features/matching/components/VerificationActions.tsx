@@ -6,7 +6,10 @@ import {
 
 import { useState } from "react";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+    useMutation,
+    useQueryClient,
+} from "@tanstack/react-query";
 
 import {
     verifyMatch,
@@ -15,58 +18,72 @@ import {
 
 interface VerificationActionsProps {
 
-    matchId: string;
+    matchId:string;
 
-    requirementId: string;
+    requirementId:string;
 
-    currentStatus?: string;
+    currentStatus?:string;
 
 }
 
 
+
 export function VerificationActions({
+
     matchId,
+
     requirementId,
+
     currentStatus,
-}: VerificationActionsProps) {
+
+}:VerificationActionsProps){
 
 
     const queryClient =
         useQueryClient();
 
 
-    const [note, setNote] =
+
+    const [note,setNote] =
         useState("");
 
 
 
-    const verificationMutation =
+    const [confirmAction,setConfirmAction] =
+        useState<
+            "ACCEPTED" |
+            "REJECTED" |
+            "NEEDS_INSPECTION" |
+            null
+        >(null);
+
+
+
+
+    const mutation =
         useMutation({
 
             mutationFn:
-                ({
-                    decision,
-                }:{
-                    decision:
-                    | "ACCEPTED"
-                    | "REJECTED"
-                    | "NEEDS_INSPECTION"
-                }) =>
-                    verifyMatch(
-                        matchId,
-                        decision,
-                        note
-                    ),
+                ()=>verifyMatch(
+                    matchId,
+                    confirmAction!,
+                    note
+                ),
 
 
             onSuccess:()=>{
 
                 queryClient.invalidateQueries({
+
                     queryKey:[
                         "matches",
                         requirementId
                     ]
+
                 });
+
+
+                setConfirmAction(null);
 
             }
 
@@ -74,32 +91,70 @@ export function VerificationActions({
 
 
 
-    const isPending =
-        verificationMutation.isPending;
+
+    const submitDecision = ()=>{
+
+        if(!confirmAction)
+            return;
+
+
+        mutation.mutate();
+
+    };
+
+
+
+    const disabled =
+        mutation.isPending ||
+        currentStatus === "ACCEPTED" ||
+        currentStatus === "REJECTED";
 
 
 
     return (
 
-        <div className="space-y-4 border-t border-slate-100 pt-5">
+        <div className="space-y-5 border-t border-slate-100 pt-5">
 
 
-            <div>
-
-                <p className="text-sm font-medium text-slate-800">
-
-                    Human Verification
-
-                </p>
+            <div className="flex items-center justify-between">
 
 
-                <p className="mt-1 text-xs text-slate-500">
+                <div>
 
-                    Review this recommendation before allocation.
+                    <h3 className="text-sm font-semibold text-slate-900">
 
-                </p>
+                        Human Verification
+
+                    </h3>
+
+
+                    <p className="mt-1 text-xs text-slate-500">
+
+                        Approve or reject this AI recommendation.
+
+                    </p>
+
+                </div>
+
+
+
+
+                {
+                    currentStatus && (
+
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+
+                            {currentStatus}
+
+                        </span>
+
+                    )
+                }
+
 
             </div>
+
+
 
 
 
@@ -108,15 +163,18 @@ export function VerificationActions({
 
                 value={note}
 
-                onChange={(e)=>
+                onChange={
+                    (e)=>
                     setNote(e.target.value)
                 }
 
-                placeholder="Add verification note..."
+                placeholder="Verification note..."
 
-                className="min-h-20 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+                className="min-h-24 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
 
             />
+
+
 
 
 
@@ -125,77 +183,66 @@ export function VerificationActions({
             <div className="flex flex-wrap gap-3">
 
 
-                <button
 
-                    disabled={isPending}
+                <ActionButton
 
-                    onClick={() =>
-                        verificationMutation.mutate({
-                            decision:
-                                "ACCEPTED"
-                        })
+                    icon={<Check size={16}/>}
+
+                    label="Accept"
+
+                    disabled={disabled}
+
+                    active={
+                        confirmAction==="ACCEPTED"
                     }
 
-                    className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-green-700 disabled:opacity-50"
-
-                >
-
-                    <Check size={16}/>
-
-                    Accept
-
-                </button>
-
-
-
-
-
-                <button
-
-                    disabled={isPending}
-
-                    onClick={() =>
-                        verificationMutation.mutate({
-                            decision:
-                                "REJECTED"
-                        })
+                    onClick={()=>
+                        setConfirmAction("ACCEPTED")
                     }
 
-                    className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-
-                >
-
-                    <X size={16}/>
-
-                    Reject
-
-                </button>
+                />
 
 
 
+                <ActionButton
 
+                    icon={<X size={16}/>}
 
+                    label="Reject"
 
-                <button
+                    disabled={disabled}
 
-                    disabled={isPending}
-
-                    onClick={() =>
-                        verificationMutation.mutate({
-                            decision:
-                                "NEEDS_INSPECTION"
-                        })
+                    active={
+                        confirmAction==="REJECTED"
                     }
 
-                    className="inline-flex items-center gap-2 rounded-lg border border-yellow-200 bg-white px-4 py-2 text-sm font-medium text-yellow-700 transition hover:bg-yellow-50 disabled:opacity-50"
+                    onClick={()=>
+                        setConfirmAction("REJECTED")
+                    }
 
-                >
+                />
 
-                    <AlertTriangle size={16}/>
 
-                    Needs Inspection
 
-                </button>
+                <ActionButton
+
+                    icon={<AlertTriangle size={16}/>}
+
+                    label="Needs Inspection"
+
+                    disabled={disabled}
+
+                    active={
+                        confirmAction==="NEEDS_INSPECTION"
+                    }
+
+                    onClick={()=>
+                        setConfirmAction(
+                            "NEEDS_INSPECTION"
+                        )
+                    }
+
+                />
 
 
 
@@ -205,36 +252,58 @@ export function VerificationActions({
 
 
 
+
             {
-                currentStatus && (
+                confirmAction && (
 
-                    <p className="text-xs text-slate-500">
+                    <div className="rounded-lg bg-slate-50 p-4">
 
-                        Current status: {currentStatus}
 
-                    </p>
+                        <p className="text-sm text-slate-700">
+
+                            Confirm decision:
+
+                            {" "}
+
+                            <strong>
+                                {confirmAction}
+                            </strong>
+
+                        </p>
+
+
+                        <button
+
+                            onClick={submitDecision}
+
+                            disabled={mutation.isPending}
+
+                            className="mt-3 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white"
+
+                        >
+
+                            {
+                                mutation.isPending
+                                ? "Updating..."
+                                : "Confirm"
+
+                            }
+
+                        </button>
+
+
+                    </div>
 
                 )
             }
 
 
 
-            {
-                verificationMutation.isError && (
-
-                    <p className="text-sm text-red-600">
-
-                        Unable to update verification status.
-
-                    </p>
-
-                )
-            }
 
 
 
             {
-                verificationMutation.isSuccess && (
+                mutation.isSuccess && (
 
                     <p className="text-sm text-green-600">
 
@@ -247,7 +316,84 @@ export function VerificationActions({
 
 
 
+
+            {
+                mutation.isError && (
+
+                    <p className="text-sm text-red-600">
+
+                        Failed to update verification.
+
+                    </p>
+
+                )
+            }
+
+
+
         </div>
+
+    );
+
+}
+
+
+
+
+
+
+function ActionButton({
+
+    icon,
+
+    label,
+
+    disabled,
+
+    active,
+
+    onClick,
+
+}:{
+
+    icon:React.ReactNode;
+
+    label:string;
+
+    disabled:boolean;
+
+    active:boolean;
+
+    onClick:()=>void;
+
+}){
+
+
+    return (
+
+        <button
+
+            onClick={onClick}
+
+            disabled={disabled}
+
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition
+
+            ${
+                active
+                ? "bg-slate-900 text-white"
+                : "border border-slate-300 bg-white text-slate-700"
+            }
+
+            disabled:opacity-50`}
+
+        >
+
+            {icon}
+
+            {label}
+
+        </button>
 
     );
 

@@ -22,7 +22,7 @@ import { useDeleteProject } from "../hooks/useDeleteProject";
 import { useProject } from "../hooks/useProject";
 
 export function ProjectDetailsPage() {
-    const { id } = useParams<{ id: string }>();
+    const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
 
     const [isEditModalOpen, setIsEditModalOpen] =
@@ -35,7 +35,7 @@ export function ProjectDetailsPage() {
         data: project,
         isLoading,
         isError,
-    } = useProject(id);
+    } = useProject(projectId);
 
     const deleteProjectMutation = useDeleteProject();
 
@@ -70,12 +70,12 @@ export function ProjectDetailsPage() {
     }
 
     const handleDelete = async () => {
-        if (!id) {
+        if (!projectId) {
             return;
         }
 
         try {
-            await deleteProjectMutation.mutateAsync(id);
+            await deleteProjectMutation.mutateAsync(projectId);
 
             setIsDeleteModalOpen(false);
 
@@ -321,7 +321,7 @@ export function ProjectDetailsPage() {
                             variant="secondary"
                             onClick={() =>
                                 navigate(
-                                    `/requirements/project/${project.id}`
+                                    `/projects/${project.id}/requirements`
                                 )
                             }
                         >

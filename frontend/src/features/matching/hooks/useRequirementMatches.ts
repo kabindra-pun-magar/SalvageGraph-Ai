@@ -24,7 +24,10 @@ export function useRequirementMatches(
 
 
         enabled:
-            Boolean(requirementId)
+            Boolean(requirementId),
+
+
+        retry:2,
 
     });
 

@@ -109,7 +109,7 @@ export function RequirementDetailsPage() {
             setIsDeleteModalOpen(false);
 
             navigate(
-                `/requirements/project/${requirement.projectId}`,
+                `/projects/${requirement.projectId}/requirements`,
                 { replace: true }
             );
         } catch {
@@ -124,7 +124,7 @@ export function RequirementDetailsPage() {
                 type="button"
                 onClick={() =>
                     navigate(
-                        `/requirements/project/${requirement.projectId}`
+                        `/projects/${requirement.projectId}/requirements`
                     )
                 }
                 className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
