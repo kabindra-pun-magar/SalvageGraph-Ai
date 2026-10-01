@@ -91,6 +91,58 @@ const calculateSuitabilityScore = (
     );
 };
 
+const filterMatchingCandidates = (
+    materials: Awaited<ReturnType<typeof prisma.material.findMany>>,
+    requirement: {
+        materialType: string;
+        quantity: unknown;
+        requiredCondition: number | null;
+    }
+) => {
+    const requiredQuantity = Number(requirement.quantity);
+
+    return materials.filter((material) => {
+        // Hard filter 1: material must be available
+        if (material.status !== "AVAILABLE") {
+            return false;
+        }
+
+        // Hard filter 2: material type must match
+        if (material.type !== requirement.materialType) {
+            return false;
+        }
+
+        // Hard filter 3: quantity must be sufficient
+        const materialQuantity = Number(material.quantity);
+
+        if (materialQuantity < requiredQuantity) {
+            return false;
+        }
+
+        // Hard filter 4: condition must satisfy minimum requirement
+        if (
+            requirement.requiredCondition !== null &&
+            requirement.requiredCondition !== undefined
+        ) {
+            if (
+                material.conditionScore === null ||
+                material.conditionScore === undefined
+            ) {
+                return false;
+            }
+
+            if (
+                material.conditionScore <
+                requirement.requiredCondition
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+};
+
 export const runMatching = async (
     requirementId: string,
     userId: string
@@ -152,7 +204,7 @@ export const runMatching = async (
             material.conditionScore !== null &&
             material.conditionScore !== undefined &&
             material.conditionScore <
-                requirement.requiredCondition
+            requirement.requiredCondition
         ) {
             return false;
         }
@@ -230,9 +282,9 @@ export const runMatching = async (
         const dimensionScore =
             dimensionScores.length > 0
                 ? dimensionScores.reduce(
-                      (sum, score) => sum + score,
-                      0
-                  ) / dimensionScores.length
+                    (sum, score) => sum + score,
+                    0
+                ) / dimensionScores.length
                 : 100;
 
         /*
