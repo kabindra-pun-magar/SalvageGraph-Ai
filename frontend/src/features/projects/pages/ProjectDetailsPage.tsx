@@ -78,7 +78,10 @@ export function ProjectDetailsPage() {
             await deleteProjectMutation.mutateAsync(id);
 
             setIsDeleteModalOpen(false);
-            navigate("/projects", { replace: true });
+
+            navigate("/projects", {
+                replace: true,
+            });
         } catch {
             // Mutation state displays the error.
         }
@@ -176,25 +179,33 @@ export function ProjectDetailsPage() {
                         <InfoItem
                             icon={DollarSign}
                             label="Budget"
-                            value={formatBudget(project.budget)}
+                            value={formatBudget(
+                                project.budget
+                            )}
                         />
 
                         <InfoItem
                             icon={CalendarDays}
                             label="Deadline"
-                            value={formatDate(project.deadline)}
+                            value={formatDate(
+                                project.deadline
+                            )}
                         />
 
                         <InfoItem
                             icon={Clock3}
                             label="Created"
-                            value={formatDate(project.createdAt)}
+                            value={formatDate(
+                                project.createdAt
+                            )}
                         />
 
                         <InfoItem
                             icon={Clock3}
                             label="Last updated"
-                            value={formatDate(project.updatedAt)}
+                            value={formatDate(
+                                project.updatedAt
+                            )}
                         />
 
                         <InfoItem
@@ -202,7 +213,7 @@ export function ProjectDetailsPage() {
                             label="Coordinates"
                             value={formatCoordinates(
                                 project.latitude,
-                                project.longitude,
+                                project.longitude
                             )}
                         />
                     </div>
@@ -238,7 +249,7 @@ export function ProjectDetailsPage() {
                         <p className="mt-2 text-xs text-slate-500">
                             {formatCoordinates(
                                 project.latitude,
-                                project.longitude,
+                                project.longitude
                             )}
                         </p>
                     </div>
@@ -280,35 +291,85 @@ export function ProjectDetailsPage() {
                 </div>
             </Card>
 
-            {/* Future sections */}
+            {/* Project Resources */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                {/* Material Requirements */}
                 <Card>
-                    <h2 className="text-base font-semibold text-slate-900">
-                        Material requirements
-                    </h2>
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Material requirements
+                            </h2>
 
-                    <p className="mt-1 text-sm text-slate-500">
-                        Requirements associated with this project
-                        will appear here.
-                    </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Define and manage the materials
+                                required for this project.
+                            </p>
+                        </div>
+
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                            <FileText
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-5">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() =>
+                                navigate(
+                                    `/requirements/project/${project.id}`
+                                )
+                            }
+                        >
+                            View Requirements
+                        </Button>
+                    </div>
                 </Card>
 
+                {/* Source Materials */}
                 <Card>
-                    <h2 className="text-base font-semibold text-slate-900">
-                        Source materials
-                    </h2>
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Source materials
+                            </h2>
 
-                    <p className="mt-1 text-sm text-slate-500">
-                        Recovered materials associated with this
-                        project will appear here.
-                    </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Recovered materials associated
+                                with this project.
+                            </p>
+                        </div>
+
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+                            <FolderKanban
+                                size={18}
+                                strokeWidth={1.8}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-5">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            disabled
+                        >
+                            Coming soon
+                        </Button>
+                    </div>
                 </Card>
             </div>
 
             {/* Edit Project Modal */}
             <Modal
                 open={isEditModalOpen}
-                onClose={() => setIsEditModalOpen(false)}
+                onClose={() =>
+                    setIsEditModalOpen(false)
+                }
                 title="Edit project"
                 description="Update the information for this project."
                 size="lg"
@@ -319,7 +380,8 @@ export function ProjectDetailsPage() {
                         id: project.id,
                         name: project.name,
                         description: project.description,
-                        location: project.location ?? "",
+                        location:
+                            project.location ?? "",
                         latitude: project.latitude,
                         longitude: project.longitude,
                         budget: project.budget,
@@ -338,7 +400,9 @@ export function ProjectDetailsPage() {
             <Modal
                 open={isDeleteModalOpen}
                 onClose={() => {
-                    if (!deleteProjectMutation.isPending) {
+                    if (
+                        !deleteProjectMutation.isPending
+                    ) {
                         setIsDeleteModalOpen(false);
                     }
                 }}
@@ -400,6 +464,10 @@ export function ProjectDetailsPage() {
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Info Item */
+/* -------------------------------------------------------------------------- */
+
 interface InfoItemProps {
     icon: typeof MapPin;
     label: string;
@@ -430,6 +498,10 @@ function InfoItem({
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Loading */
+/* -------------------------------------------------------------------------- */
+
 function ProjectDetailsLoadingState() {
     return (
         <div className="space-y-6">
@@ -454,6 +526,10 @@ function ProjectDetailsLoadingState() {
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Helpers */
+/* -------------------------------------------------------------------------- */
+
 function formatDate(value: string | null): string {
     if (!value) {
         return "Not set";
@@ -473,7 +549,7 @@ function formatDate(value: string | null): string {
 }
 
 function formatBudget(
-    value: string | number | null,
+    value: string | number | null
 ): string {
     if (value === null || value === undefined) {
         return "Not set";
@@ -492,9 +568,12 @@ function formatBudget(
 
 function formatCoordinates(
     latitude: number | null,
-    longitude: number | null,
+    longitude: number | null
 ): string {
-    if (latitude === null || longitude === null) {
+    if (
+        latitude === null ||
+        longitude === null
+    ) {
         return "Coordinates not set";
     }
 

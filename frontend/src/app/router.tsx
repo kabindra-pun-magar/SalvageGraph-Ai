@@ -14,8 +14,10 @@ import MaterialRegistrationPage from "../features/materials/pages/MaterialRegist
 import MaterialEditPage from "../features/materials/pages/MaterialEditPage";
 
 import PassportPage from "../features/passport/pages/PassportPage";
-
 import PassportEditPage from "../features/passport/pages/PassportEditPage";
+
+import { RequirementsPage } from "../features/requirements/pages/RequirementsPage";
+import { RequirementDetailsPage } from "../features/requirements/pages/RequirementDetailsPage";
 
 import { MainLayout } from "../layouts/MainLayout";
 
@@ -72,6 +74,16 @@ export const router = createBrowserRouter([
                     {
                         path: "materials/:materialId",
                         element: <MaterialDetailsPage />,
+                    },
+
+                    // Material Requirements
+                    {
+                        path: "requirements/project/:projectId",
+                        element: <RequirementsPage />,
+                    },
+                    {
+                        path: "requirements/:requirementId",
+                        element: <RequirementDetailsPage />,
                     },
                 ],
             },
