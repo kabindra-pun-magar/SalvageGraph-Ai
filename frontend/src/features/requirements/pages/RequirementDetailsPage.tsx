@@ -18,6 +18,10 @@ import { CreateRequirementForm } from "../components/CreateRequirementForm";
 import { useDeleteRequirement } from "../hooks/useDeleteRequirement";
 import { useRequirement } from "../hooks/useRequirement";
 
+import { Search } from "lucide-react";
+
+import { useRunMatching } from "../../matching/hooks/useRunMatching";
+
 export function RequirementDetailsPage() {
     const { requirementId } = useParams<{
         requirementId: string;
@@ -45,6 +49,9 @@ export function RequirementDetailsPage() {
         return <RequirementDetailsLoadingState />;
     }
 
+    const runMatchingMutation =
+        useRunMatching();
+
     if (isError || !requirement) {
         return (
             <div className="space-y-6">
@@ -70,6 +77,27 @@ export function RequirementDetailsPage() {
             </div>
         );
     }
+
+    const handleFindMatches = async () => {
+
+        if (!requirementId) {
+            return;
+        }
+
+        try {
+
+            await runMatchingMutation.mutateAsync(
+                requirementId
+            );
+
+            navigate(
+                `/requirements/${requirementId}/matches`
+            );
+
+        } catch {
+            // mutation state handles error
+        }
+    };
 
     const handleDelete = async () => {
         try {
@@ -142,27 +170,54 @@ export function RequirementDetailsPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
+
+                    <button
+                        type="button"
+                        disabled={
+                            runMatchingMutation.isPending
+                        }
+                        onClick={handleFindMatches}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+
+                        <Search size={16} />
+
+                        {
+                            runMatchingMutation.isPending
+                                ? "Finding..."
+                                : "Find Matches"
+                        }
+
+                    </button>
+
+
                     <button
                         type="button"
                         onClick={() =>
                             setIsEditModalOpen(true)
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
                     >
+
                         <Edit3 size={16} />
                         Edit
+
                     </button>
+
 
                     <button
                         type="button"
                         onClick={() =>
                             setIsDeleteModalOpen(true)
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3.5 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100"
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3.5 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
                     >
+
                         <Trash2 size={16} />
                         Delete
+
                     </button>
+
                 </div>
             </div>
 
@@ -205,7 +260,7 @@ export function RequirementDetailsPage() {
                             label="Required Condition"
                             value={
                                 requirement.requiredCondition !==
-                                null
+                                    null
                                     ? `${requirement.requiredCondition}%`
                                     : "Not specified"
                             }

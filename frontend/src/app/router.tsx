@@ -20,6 +20,7 @@ import { RequirementsPage } from "../features/requirements/pages/RequirementsPag
 import { RequirementDetailsPage } from "../features/requirements/pages/RequirementDetailsPage";
 
 import { MainLayout } from "../layouts/MainLayout";
+import { MatchesPage } from "../features/matching/pages/MatchesPage";
 
 export const router = createBrowserRouter([
     {
@@ -84,6 +85,11 @@ export const router = createBrowserRouter([
                     {
                         path: "requirements/:requirementId",
                         element: <RequirementDetailsPage />,
+                    },
+
+                    {
+                        path: "requirements/:requirementId/matches",
+                        element: <MatchesPage />,
                     },
                 ],
             },
