@@ -193,9 +193,9 @@ const calculateCompatibilityScore = (
     const dimensionScore =
         dimensionScores.length > 0
             ? dimensionScores.reduce(
-                  (sum, score) => sum + score,
-                  0
-              ) / dimensionScores.length
+                (sum, score) => sum + score,
+                0
+            ) / dimensionScores.length
             : 100;
 
     return (
@@ -337,7 +337,7 @@ const calculateEnvironmentalBenefit = (
 ) => {
     const environmentalFactor =
         ENVIRONMENTAL_FACTORS[
-            materialType
+        materialType
         ] ?? 1;
 
     const estimatedAvoidedMaterialImpact =
@@ -356,13 +356,13 @@ const calculateEnvironmentalBenefit = (
         distanceKm === null
             ? 50
             : Math.max(
-                  0,
-                  Math.min(
-                      100,
-                      100 -
-                          distanceKm * 2
-                  )
-              );
+                0,
+                Math.min(
+                    100,
+                    100 -
+                    distanceKm * 2
+                )
+            );
 
     return {
         reusedQuantity: quantity,
@@ -425,55 +425,131 @@ const filterMatchingCandidates = (
         requiredCondition: number | null;
     }
 ) => {
+
     const requiredQuantity = Number(
         requirement.quantity
     );
 
+
+    console.log(
+        "Total materials before filtering:",
+        materials.length
+    );
+
+
+    console.log(
+        "Requirement:",
+        {
+            type: requirement.materialType,
+            quantity: requirement.quantity,
+            condition: requirement.requiredCondition,
+        }
+    );
+
+
     return materials.filter((material) => {
+
+
+        console.log(
+            "Checking material:",
+            {
+                id: material.id,
+                type: material.type,
+                status: material.status,
+                quantity: Number(material.quantity),
+                conditionScore: material.conditionScore,
+            }
+        );
+
+
         if (material.status !== "AVAILABLE") {
+
+            console.log(
+                "Rejected: status"
+            );
+
             return false;
         }
+
 
         if (
             material.type !==
             requirement.materialType
         ) {
+
+            console.log(
+                "Rejected: type mismatch",
+                material.type,
+                requirement.materialType
+            );
+
             return false;
         }
+
 
         const materialQuantity = Number(
             material.quantity
         );
 
+
         if (
             materialQuantity <
             requiredQuantity
         ) {
+
+            console.log(
+                "Rejected: insufficient quantity",
+                materialQuantity,
+                requiredQuantity
+            );
+
             return false;
         }
 
+
         if (
             requirement.requiredCondition !==
-                null &&
+            null &&
             requirement.requiredCondition !==
-                undefined
+            undefined
         ) {
+
             if (
                 material.conditionScore ===
-                    null ||
+                null ||
                 material.conditionScore ===
-                    undefined
+                undefined
             ) {
+
+                console.log(
+                    "Rejected: missing condition"
+                );
+
                 return false;
             }
+
 
             if (
                 material.conditionScore <
                 requirement.requiredCondition
             ) {
+
+                console.log(
+                    "Rejected: condition too low",
+                    material.conditionScore,
+                    requirement.requiredCondition
+                );
+
                 return false;
             }
         }
+
+
+        console.log(
+            "Accepted candidate:",
+            material.id
+        );
+
 
         return true;
     });
@@ -519,7 +595,6 @@ export const runMatching = async (
     const materials =
         await prisma.material.findMany({
             where: {
-                registeredById: userId,
                 status: "AVAILABLE",
             },
         });
@@ -591,7 +666,7 @@ export const runMatching = async (
             if (
                 requirement.length !== null &&
                 requirement.length !==
-                    undefined
+                undefined
             ) {
                 dimensionScores.push(
                     lengthScore
@@ -601,7 +676,7 @@ export const runMatching = async (
             if (
                 requirement.width !== null &&
                 requirement.width !==
-                    undefined
+                undefined
             ) {
                 dimensionScores.push(
                     widthScore
@@ -611,7 +686,7 @@ export const runMatching = async (
             if (
                 requirement.height !== null &&
                 requirement.height !==
-                    undefined
+                undefined
             ) {
                 dimensionScores.push(
                     heightScore
@@ -620,9 +695,9 @@ export const runMatching = async (
 
             if (
                 requirement.diameter !==
-                    null &&
+                null &&
                 requirement.diameter !==
-                    undefined
+                undefined
             ) {
                 dimensionScores.push(
                     diameterScore
@@ -632,11 +707,11 @@ export const runMatching = async (
             const dimensionScore =
                 dimensionScores.length > 0
                     ? dimensionScores.reduce(
-                          (sum, score) =>
-                              sum + score,
-                          0
-                      ) /
-                      dimensionScores.length
+                        (sum, score) =>
+                            sum + score,
+                        0
+                    ) /
+                    dimensionScores.length
                     : 100;
 
             const suitabilityScore =
@@ -670,8 +745,8 @@ export const runMatching = async (
                     material.estimatedUnitValue !==
                         null
                         ? Number(
-                              material.estimatedUnitValue
-                          )
+                            material.estimatedUnitValue
+                        )
                         : null,
                     transportCost ?? 0
                 );
@@ -853,15 +928,13 @@ export const runMatching = async (
                             `Compatibility: ${match.compatibilityScore.toFixed(2)}`,
                             `Condition: ${match.conditionScore.toFixed(2)}`,
                             `Quantity: ${match.quantityScore.toFixed(2)}`,
-                            `Distance: ${
-                                match.distanceKm !== null
-                                    ? `${match.distanceKm.toFixed(2)} km`
-                                    : "Unavailable"
+                            `Distance: ${match.distanceKm !== null
+                                ? `${match.distanceKm.toFixed(2)} km`
+                                : "Unavailable"
                             }`,
-                            `Economic benefit: ${
-                                match.economicBenefit !== null
-                                    ? match.economicBenefit.toFixed(2)
-                                    : "Unavailable"
+                            `Economic benefit: ${match.economicBenefit !== null
+                                ? match.economicBenefit.toFixed(2)
+                                : "Unavailable"
                             }`,
                             `Environmental score: ${match.environmentalBenefit.environmentalScore.toFixed(2)}`,
                             `Final ranking score: ${match.finalRankingScore.toFixed(2)}`,
@@ -1078,15 +1151,15 @@ export const verifyMatch =
             decision === "ACCEPTED"
                 ? "ACCEPTED"
                 : decision === "REJECTED"
-                  ? "REJECTED"
-                  : "EVALUATED";
+                    ? "REJECTED"
+                    : "EVALUATED";
 
         const recommendationStatus =
             decision === "ACCEPTED"
                 ? "APPROVED"
                 : decision === "REJECTED"
-                  ? "REJECTED"
-                  : "NEEDS_INSPECTION";
+                    ? "REJECTED"
+                    : "NEEDS_INSPECTION";
 
         return prisma.$transaction(
             async (tx) => {
