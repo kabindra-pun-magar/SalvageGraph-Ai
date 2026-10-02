@@ -20,6 +20,9 @@ export const createMaterialController = async (
   try {
     const userId = res.locals.user.userId;
 
+    console.log("=== CREATE MATERIAL ===");
+    console.log("REQUEST BODY:", JSON.stringify(req.body, null, 2));
+
     const material = await createMaterial(
       userId,
       req.body
@@ -32,6 +35,9 @@ export const createMaterialController = async (
       )
     );
   } catch (error) {
+    console.error("=== CREATE MATERIAL ERROR ===");
+    console.error(error);
+
     next(error);
   }
 };

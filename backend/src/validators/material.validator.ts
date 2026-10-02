@@ -1,78 +1,166 @@
 import { z } from "zod";
 
-const materialTypeSchema = z.enum([
-  "BRICK",
+const materialTypeEnum = z.enum([
   "TILE",
+  "BRICK",
   "PIPE",
-  "STEEL",
+  "REBAR",
   "TIMBER",
+  "CONCRETE",
+  "SAND",
+  "WOOD",
+  "GLASS",
   "OTHER",
 ]);
 
+const optionalNumber = z
+  .number()
+  .finite()
+  .optional();
+
+const optionalUuid = z.preprocess(
+  (value) => {
+    if (value === null || value === undefined) {
+      return undefined;
+    }
+
+    if (
+      typeof value === "string" &&
+      value.trim() === ""
+    ) {
+      return undefined;
+    }
+
+    return value;
+  },
+  z.string().uuid().optional()
+);
+
 export const createMaterialSchema = z.object({
   body: z.object({
-    materialCode: z.string().min(2).max(100),
+    materialCode: z
+      .string()
+      .min(1, "Material code is required"),
 
-    type: materialTypeSchema,
+    type: materialTypeEnum,
 
-    subtype: z.string().max(100).optional(),
+    subtype: z
+      .string()
+      .optional(),
 
-    quantity: z.number().positive(
-      "Quantity must be greater than 0"
-    ),
+    quantity: z
+      .number()
+      .positive("Quantity must be greater than 0"),
 
-    unit: z.string().min(1).max(50),
+    unit: z
+      .string()
+      .min(1, "Unit is required"),
 
-    length: z.number().positive().optional(),
+    length: optionalNumber,
 
-    width: z.number().positive().optional(),
+    width: optionalNumber,
 
-    height: z.number().positive().optional(),
+    height: optionalNumber,
 
-    diameter: z.number().positive().optional(),
+    diameter: optionalNumber,
 
-    conditionScore: z.number().min(0).max(100).optional(),
+    conditionScore: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional(),
 
-    age: z.number().int().nonnegative().optional(),
+    age: z
+      .number()
+      .min(0)
+      .optional(),
 
-    sourceProjectId: z.string().uuid().optional(),
+    sourceProjectId: optionalUuid,
 
-    location: z.string().min(2).max(255).optional(),
+    location: z
+      .string()
+      .optional(),
 
-    latitude: z.number().min(-90).max(90).optional(),
+    latitude: z
+      .number()
+      .min(-90)
+      .max(90)
+      .optional(),
 
-    longitude: z.number().min(-180).max(180).optional(),
+    longitude: z
+      .number()
+      .min(-180)
+      .max(180)
+      .optional(),
   }),
 });
 
 export const updateMaterialSchema = z.object({
   body: z.object({
-    materialCode: z.string().min(2).max(100).optional(),
+    materialCode: z
+      .string()
+      .min(1)
+      .optional(),
 
-    type: materialTypeSchema.optional(),
+    type: materialTypeEnum.optional(),
 
-    subtype: z.string().max(100).optional(),
+    subtype: z
+      .string()
+      .optional(),
 
-    quantity: z.number().positive().optional(),
+    quantity: z
+      .number()
+      .positive()
+      .optional(),
 
-    unit: z.string().min(1).max(50).optional(),
+    unit: z
+      .string()
+      .min(1)
+      .optional(),
 
-    length: z.number().positive().optional(),
+    length: optionalNumber,
 
-    width: z.number().positive().optional(),
+    width: optionalNumber,
 
-    height: z.number().positive().optional(),
+    height: optionalNumber,
 
-    diameter: z.number().positive().optional(),
+    diameter: optionalNumber,
 
-    conditionScore: z.number().min(0).max(100).optional(),
+    conditionScore: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional(),
 
-    age: z.number().int().nonnegative().optional(),
+    age: z
+      .number()
+      .min(0)
+      .optional(),
 
-    location: z.string().min(2).max(255).optional(),
+    sourceProjectId: optionalUuid,
 
-    latitude: z.number().min(-90).max(90).optional(),
+    location: z
+      .string()
+      .optional(),
 
-    longitude: z.number().min(-180).max(180).optional(),
+    latitude: z
+      .number()
+      .min(-90)
+      .max(90)
+      .optional(),
+
+    longitude: z
+      .number()
+      .min(-180)
+      .max(180)
+      .optional(),
+
+    status: z
+      .string()
+      .optional(),
+
+    verification: z
+      .string()
+      .optional(),
   }),
 });
