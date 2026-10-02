@@ -13,6 +13,8 @@ import {
     type UpdateMaterialInput,
 } from "../services/materialService";
 
+import { useProjects } from "../../projects/hooks/useProjects";
+
 interface CreateMaterialFormProps {
     mode?: "create" | "edit";
     initialData?: Material;
@@ -24,15 +26,20 @@ interface MaterialFormValues {
     materialCode: string;
     type: string;
     subtype: string;
+
     quantity: string;
     unit: string;
+
     length: string;
     width: string;
     height: string;
     diameter: string;
+
     conditionScore: string;
     age: string;
+
     sourceProjectId: string;
+
     location: string;
     latitude: string;
     longitude: string;
@@ -66,39 +73,68 @@ export function CreateMaterialForm({
     onSuccess,
     onCancel,
 }: CreateMaterialFormProps) {
+    /*
+     * Load available projects.
+     *
+     * IMPORTANT:
+     * Hooks must be called inside the component.
+     */
+    const projectsQuery = useProjects();
+
+    const projects = projectsQuery.data ?? [];
+
     const {
         register,
         handleSubmit,
         reset,
-        formState: { errors, isSubmitting },
+        setError,
+        formState: {
+            errors,
+            isSubmitting,
+        },
     } = useForm<MaterialFormValues>({
         defaultValues: {
             materialCode: "",
             type: "",
             subtype: "",
+
             quantity: "",
             unit: "",
+
             length: "",
             width: "",
             height: "",
             diameter: "",
+
             conditionScore: "",
             age: "",
+
             sourceProjectId: "",
+
             location: "",
             latitude: "",
             longitude: "",
         },
     });
 
+    /*
+     * Populate form when editing.
+     */
     useEffect(() => {
         if (mode === "edit" && initialData) {
             reset({
                 materialCode: initialData.materialCode,
+
                 type: initialData.type,
-                subtype: initialData.subtype ?? "",
-                quantity: String(initialData.quantity),
-                unit: initialData.unit,
+
+                subtype:
+                    initialData.subtype ?? "",
+
+                quantity:
+                    String(initialData.quantity),
+
+                unit:
+                    initialData.unit,
 
                 length:
                     initialData.length !== null
@@ -147,76 +183,155 @@ export function CreateMaterialForm({
                         : "",
             });
         }
-    }, [mode, initialData, reset]);
+    }, [
+        mode,
+        initialData,
+        reset,
+    ]);
 
-    const onSubmit = async (values: MaterialFormValues) => {
-        const input: CreateMaterialInput = {
-            materialCode: values.materialCode.trim(),
-            type: values.type,
-            subtype: values.subtype.trim() || undefined,
-            quantity: Number(values.quantity),
-            unit: values.unit,
+    /*
+     * Submit
+     */
+    const onSubmit = async (
+        values: MaterialFormValues
+    ) => {
+        try {
+            /*
+             * Convert form values into backend values.
+             */
+            const input: CreateMaterialInput = {
+                materialCode:
+                    values.materialCode.trim(),
 
-            length:
-                values.length !== ""
-                    ? Number(values.length)
-                    : undefined,
+                type:
+                    values.type,
 
-            width:
-                values.width !== ""
-                    ? Number(values.width)
-                    : undefined,
+                subtype:
+                    values.subtype.trim() || undefined,
 
-            height:
-                values.height !== ""
-                    ? Number(values.height)
-                    : undefined,
+                quantity:
+                    Number(values.quantity),
 
-            diameter:
-                values.diameter !== ""
-                    ? Number(values.diameter)
-                    : undefined,
+                unit:
+                    values.unit,
 
-            conditionScore:
-                values.conditionScore !== ""
-                    ? Number(values.conditionScore)
-                    : undefined,
+                length:
+                    values.length.trim() !== ""
+                        ? Number(values.length)
+                        : undefined,
 
-            age:
-                values.age !== ""
-                    ? Number(values.age)
-                    : undefined,
+                width:
+                    values.width.trim() !== ""
+                        ? Number(values.width)
+                        : undefined,
 
-            sourceProjectId:
-                values.sourceProjectId.trim() || undefined,
+                height:
+                    values.height.trim() !== ""
+                        ? Number(values.height)
+                        : undefined,
 
-            location:
-                values.location.trim() || undefined,
+                diameter:
+                    values.diameter.trim() !== ""
+                        ? Number(values.diameter)
+                        : undefined,
 
-            latitude:
-                values.latitude !== ""
-                    ? Number(values.latitude)
-                    : undefined,
+                conditionScore:
+                    values.conditionScore.trim() !== ""
+                        ? Number(
+                              values.conditionScore
+                          )
+                        : undefined,
 
-            longitude:
-                values.longitude !== ""
-                    ? Number(values.longitude)
-                    : undefined,
-        };
+                age:
+                    values.age.trim() !== ""
+                        ? Number(values.age)
+                        : undefined,
 
-        if (mode === "edit" && initialData) {
-            const updateInput: UpdateMaterialInput = input;
+                location:
+                    values.location.trim() ||
+                    undefined,
 
-            await updateMaterial(
-                initialData.id,
-                updateInput
+                latitude:
+                    values.latitude.trim() !== ""
+                        ? Number(values.latitude)
+                        : undefined,
+
+                longitude:
+                    values.longitude.trim() !== ""
+                        ? Number(values.longitude)
+                        : undefined,
+            };
+
+            /*
+             * Source Project
+             *
+             * The user selects a project from the
+             * dropdown.
+             *
+             * The selected option's value is the
+             * actual project UUID.
+             *
+             * If no project is selected, we don't
+             * send sourceProjectId at all.
+             */
+            const sourceProjectId =
+                values.sourceProjectId.trim();
+
+            if (sourceProjectId.length > 0) {
+                input.sourceProjectId =
+                    sourceProjectId;
+            }
+
+            /*
+             * Create
+             */
+            if (mode === "create") {
+                await createMaterial(input);
+
+                reset();
+            }
+
+            /*
+             * Update
+             */
+            else if (
+                mode === "edit" &&
+                initialData
+            ) {
+                const updateInput:
+                    UpdateMaterialInput = input;
+
+                await updateMaterial(
+                    initialData.id,
+                    updateInput
+                );
+            }
+
+            /*
+             * Only execute success callback
+             * after API request succeeds.
+             */
+            onSuccess?.();
+
+        } catch (error: any) {
+            console.error(
+                "Material submission failed:",
+                error
             );
-        } else {
-            await createMaterial(input);
-            reset();
-        }
 
-        onSuccess?.();
+            const message =
+                error?.response?.data?.message ||
+                error?.message ||
+                "Unable to save material. Please try again.";
+
+            setError(
+                "root.server",
+                {
+                    type: "server",
+                    message,
+                }
+            );
+        }
     };
 
     return (
@@ -224,7 +339,29 @@ export function CreateMaterialForm({
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-6"
         >
+            {/* ====================================================== */}
+            {/* Server Error */}
+            {/* ====================================================== */}
+
+            {errors.root?.server?.message && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm font-medium text-red-800">
+                        Unable to save material
+                    </p>
+
+                    <p className="mt-1 text-sm text-red-600">
+                        {
+                            errors.root.server
+                                .message
+                        }
+                    </p>
+                </div>
+            )}
+
+            {/* ====================================================== */}
             {/* Basic Information */}
+            {/* ====================================================== */}
+
             <Card>
                 <div className="border-b border-slate-200 pb-5">
                     <h2 className="text-base font-semibold text-slate-900">
@@ -238,21 +375,29 @@ export function CreateMaterialForm({
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+
                     <FormField
                         label="Material Code"
                         required
-                        error={errors.materialCode?.message}
+                        error={
+                            errors.materialCode
+                                ?.message
+                        }
                     >
                         <input
-                            {...register("materialCode", {
-                                required:
-                                    "Material code is required",
-                                minLength: {
-                                    value: 2,
-                                    message:
-                                        "Material code must contain at least 2 characters",
-                                },
-                            })}
+                            {...register(
+                                "materialCode",
+                                {
+                                    required:
+                                        "Material code is required",
+
+                                    minLength: {
+                                        value: 2,
+                                        message:
+                                            "Material code must contain at least 2 characters",
+                                    },
+                                }
+                            )}
                             placeholder="e.g. MAT-001"
                             className={inputClass(
                                 !!errors.materialCode
@@ -263,13 +408,18 @@ export function CreateMaterialForm({
                     <FormField
                         label="Material Type"
                         required
-                        error={errors.type?.message}
+                        error={
+                            errors.type?.message
+                        }
                     >
                         <select
-                            {...register("type", {
-                                required:
-                                    "Material type is required",
-                            })}
+                            {...register(
+                                "type",
+                                {
+                                    required:
+                                        "Material type is required",
+                                }
+                            )}
                             className={inputClass(
                                 !!errors.type
                             )}
@@ -278,23 +428,31 @@ export function CreateMaterialForm({
                                 Select material type
                             </option>
 
-                            {MATERIAL_TYPES.map((type) => (
-                                <option
-                                    key={type}
-                                    value={type}
-                                >
-                                    {formatLabel(type)}
-                                </option>
-                            ))}
+                            {MATERIAL_TYPES.map(
+                                (type) => (
+                                    <option
+                                        key={type}
+                                        value={type}
+                                    >
+                                        {formatLabel(
+                                            type
+                                        )}
+                                    </option>
+                                )
+                            )}
                         </select>
                     </FormField>
 
                     <FormField
                         label="Subtype"
-                        error={errors.subtype?.message}
+                        error={
+                            errors.subtype?.message
+                        }
                     >
                         <input
-                            {...register("subtype")}
+                            {...register(
+                                "subtype"
+                            )}
                             placeholder="e.g. Red brick"
                             className={inputClass()}
                         />
@@ -303,19 +461,29 @@ export function CreateMaterialForm({
                     <FormField
                         label="Quantity"
                         required
-                        error={errors.quantity?.message}
+                        error={
+                            errors.quantity
+                                ?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="0"
-                            {...register("quantity", {
-                                required:
-                                    "Quantity is required",
-                                validate: (value) =>
-                                    Number(value) > 0 ||
-                                    "Quantity must be greater than 0",
-                            })}
+                            {...register(
+                                "quantity",
+                                {
+                                    required:
+                                        "Quantity is required",
+
+                                    validate:
+                                        (value) =>
+                                            Number(
+                                                value
+                                            ) > 0 ||
+                                            "Quantity must be greater than 0",
+                                }
+                            )}
                             placeholder="e.g. 500"
                             className={inputClass(
                                 !!errors.quantity
@@ -326,13 +494,18 @@ export function CreateMaterialForm({
                     <FormField
                         label="Unit"
                         required
-                        error={errors.unit?.message}
+                        error={
+                            errors.unit?.message
+                        }
                     >
                         <select
-                            {...register("unit", {
-                                required:
-                                    "Unit is required",
-                            })}
+                            {...register(
+                                "unit",
+                                {
+                                    required:
+                                        "Unit is required",
+                                }
+                            )}
                             className={inputClass(
                                 !!errors.unit
                             )}
@@ -341,20 +514,26 @@ export function CreateMaterialForm({
                                 Select unit
                             </option>
 
-                            {UNITS.map((unit) => (
-                                <option
-                                    key={unit}
-                                    value={unit}
-                                >
-                                    {unit}
-                                </option>
-                            ))}
+                            {UNITS.map(
+                                (unit) => (
+                                    <option
+                                        key={unit}
+                                        value={unit}
+                                    >
+                                        {unit}
+                                    </option>
+                                )
+                            )}
                         </select>
                     </FormField>
+
                 </div>
             </Card>
 
+            {/* ====================================================== */}
             {/* Physical Information */}
+            {/* ====================================================== */}
+
             <Card>
                 <div className="border-b border-slate-200 pb-5">
                     <h2 className="text-base font-semibold text-slate-900">
@@ -368,15 +547,20 @@ export function CreateMaterialForm({
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+
                     <FormField
                         label="Length"
-                        error={errors.length?.message}
+                        error={
+                            errors.length?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="0"
-                            {...register("length")}
+                            {...register(
+                                "length"
+                            )}
                             placeholder="e.g. 2.5"
                             className={inputClass()}
                         />
@@ -384,13 +568,17 @@ export function CreateMaterialForm({
 
                     <FormField
                         label="Width"
-                        error={errors.width?.message}
+                        error={
+                            errors.width?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="0"
-                            {...register("width")}
+                            {...register(
+                                "width"
+                            )}
                             placeholder="e.g. 1.2"
                             className={inputClass()}
                         />
@@ -398,13 +586,17 @@ export function CreateMaterialForm({
 
                     <FormField
                         label="Height"
-                        error={errors.height?.message}
+                        error={
+                            errors.height?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="0"
-                            {...register("height")}
+                            {...register(
+                                "height"
+                            )}
                             placeholder="e.g. 0.5"
                             className={inputClass()}
                         />
@@ -412,13 +604,17 @@ export function CreateMaterialForm({
 
                     <FormField
                         label="Diameter"
-                        error={errors.diameter?.message}
+                        error={
+                            errors.diameter?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="0"
-                            {...register("diameter")}
+                            {...register(
+                                "diameter"
+                            )}
                             placeholder="e.g. 0.1"
                             className={inputClass()}
                         />
@@ -428,7 +624,8 @@ export function CreateMaterialForm({
                         label="Condition Score"
                         hint="0–100"
                         error={
-                            errors.conditionScore?.message
+                            errors.conditionScore
+                                ?.message
                         }
                     >
                         <input
@@ -439,20 +636,28 @@ export function CreateMaterialForm({
                             {...register(
                                 "conditionScore",
                                 {
-                                    validate: (value) => {
-                                        if (value === "") {
-                                            return true;
-                                        }
+                                    validate:
+                                        (value) => {
+                                            if (
+                                                value ===
+                                                ""
+                                            ) {
+                                                return true;
+                                            }
 
-                                        const number =
-                                            Number(value);
+                                            const number =
+                                                Number(
+                                                    value
+                                                );
 
-                                        return (
-                                            (number >= 0 &&
-                                                number <= 100) ||
-                                            "Condition score must be between 0 and 100"
-                                        );
-                                    },
+                                            return (
+                                                number >=
+                                                    0 &&
+                                                number <=
+                                                    100
+                                            ) ||
+                                                "Condition score must be between 0 and 100";
+                                        },
                                 }
                             )}
                             placeholder="e.g. 85"
@@ -465,7 +670,9 @@ export function CreateMaterialForm({
                     <FormField
                         label="Age"
                         hint="Years"
-                        error={errors.age?.message}
+                        error={
+                            errors.age?.message
+                        }
                     >
                         <input
                             type="number"
@@ -476,10 +683,14 @@ export function CreateMaterialForm({
                             className={inputClass()}
                         />
                     </FormField>
+
                 </div>
             </Card>
 
+            {/* ====================================================== */}
             {/* Location */}
+            {/* ====================================================== */}
+
             <Card>
                 <div className="border-b border-slate-200 pb-5">
                     <h2 className="text-base font-semibold text-slate-900">
@@ -493,13 +704,19 @@ export function CreateMaterialForm({
                 </div>
 
                 <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+
                     <div className="md:col-span-2">
                         <FormField
                             label="Location"
-                            error={errors.location?.message}
+                            error={
+                                errors.location
+                                    ?.message
+                            }
                         >
                             <input
-                                {...register("location")}
+                                {...register(
+                                    "location"
+                                )}
                                 placeholder="e.g. Surkhet, Nepal"
                                 className={inputClass()}
                             />
@@ -509,29 +726,42 @@ export function CreateMaterialForm({
                     <FormField
                         label="Latitude"
                         hint="-90 to 90"
-                        error={errors.latitude?.message}
+                        error={
+                            errors.latitude?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="-90"
                             max="90"
-                            {...register("latitude", {
-                                validate: (value) => {
-                                    if (value === "") {
-                                        return true;
-                                    }
+                            {...register(
+                                "latitude",
+                                {
+                                    validate:
+                                        (value) => {
+                                            if (
+                                                value ===
+                                                ""
+                                            ) {
+                                                return true;
+                                            }
 
-                                    const number =
-                                        Number(value);
+                                            const number =
+                                                Number(
+                                                    value
+                                                );
 
-                                    return (
-                                        (number >= -90 &&
-                                            number <= 90) ||
-                                        "Latitude must be between -90 and 90"
-                                    );
-                                },
-                            })}
+                                            return (
+                                                number >=
+                                                    -90 &&
+                                                number <=
+                                                    90
+                                            ) ||
+                                                "Latitude must be between -90 and 90";
+                                        },
+                                }
+                            )}
                             placeholder="e.g. 28.6000"
                             className={inputClass(
                                 !!errors.latitude
@@ -542,39 +772,57 @@ export function CreateMaterialForm({
                     <FormField
                         label="Longitude"
                         hint="-180 to 180"
-                        error={errors.longitude?.message}
+                        error={
+                            errors.longitude
+                                ?.message
+                        }
                     >
                         <input
                             type="number"
                             step="any"
                             min="-180"
                             max="180"
-                            {...register("longitude", {
-                                validate: (value) => {
-                                    if (value === "") {
-                                        return true;
-                                    }
+                            {...register(
+                                "longitude",
+                                {
+                                    validate:
+                                        (value) => {
+                                            if (
+                                                value ===
+                                                ""
+                                            ) {
+                                                return true;
+                                            }
 
-                                    const number =
-                                        Number(value);
+                                            const number =
+                                                Number(
+                                                    value
+                                                );
 
-                                    return (
-                                        (number >= -180 &&
-                                            number <= 180) ||
-                                        "Longitude must be between -180 and 180"
-                                    );
-                                },
-                            })}
+                                            return (
+                                                number >=
+                                                    -180 &&
+                                                number <=
+                                                    180
+                                            ) ||
+                                                "Longitude must be between -180 and 180";
+                                        },
+                                }
+                            )}
                             placeholder="e.g. 81.6330"
                             className={inputClass(
                                 !!errors.longitude
                             )}
                         />
                     </FormField>
+
                 </div>
             </Card>
 
+            {/* ====================================================== */}
             {/* Source Information */}
+            {/* ====================================================== */}
+
             <Card>
                 <div className="border-b border-slate-200 pb-5">
                     <h2 className="text-base font-semibold text-slate-900">
@@ -588,28 +836,72 @@ export function CreateMaterialForm({
                 </div>
 
                 <div className="mt-6">
+
                     <FormField
-                        label="Source Project ID"
+                        label="Source Project"
                         error={
-                            errors.sourceProjectId?.message
+                            errors.sourceProjectId
+                                ?.message
                         }
                     >
-                        <input
-                            {...register("sourceProjectId")}
-                            placeholder="Project UUID"
-                            className={inputClass()}
-                        />
+                        <select
+                            {...register(
+                                "sourceProjectId"
+                            )}
+                            disabled={
+                                projectsQuery.isLoading ||
+                                projectsQuery.isError
+                            }
+                            className={inputClass(
+                                !!errors.sourceProjectId
+                            )}
+                        >
+                            <option value="">
+                                {projectsQuery.isLoading
+                                    ? "Loading projects..."
+                                    : projectsQuery.isError
+                                      ? "Unable to load projects"
+                                      : "Select a source project (optional)"}
+                            </option>
+
+                            {projects.map(
+                                (project) => (
+                                    <option
+                                        key={project.id}
+                                        value={project.id}
+                                    >
+                                        {project.name}
+                                    </option>
+                                )
+                            )}
+                        </select>
                     </FormField>
 
-                    <p className="mt-2 text-xs text-slate-400">
-                        Leave this empty if the material is not
-                        associated with a source project.
-                    </p>
+                    {projectsQuery.isError && (
+                        <p className="mt-2 text-xs text-red-500">
+                            Projects could not be loaded.
+                            You can still register the
+                            material without a source project.
+                        </p>
+                    )}
+
+                    {!projectsQuery.isError && (
+                        <p className="mt-2 text-xs text-slate-400">
+                            Leave this empty if the material
+                            is not associated with a source
+                            project.
+                        </p>
+                    )}
+
                 </div>
             </Card>
 
+            {/* ====================================================== */}
             {/* Actions */}
+            {/* ====================================================== */}
+
             <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:justify-end">
+
                 <Button
                     type="button"
                     variant="secondary"
@@ -628,17 +920,19 @@ export function CreateMaterialForm({
                             ? "Saving..."
                             : "Registering..."
                         : mode === "edit"
-                            ? "Save Changes"
-                            : "Register Material"}
+                          ? "Save Changes"
+                          : "Register Material"}
                 </Button>
+
             </div>
+
         </form>
     );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Form Field */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+ * Form Field
+ * ========================================================================== */
 
 interface FormFieldProps {
     label: string;
@@ -657,8 +951,11 @@ function FormField({
 }: FormFieldProps) {
     return (
         <div>
+
             <div className="mb-1.5 flex items-center justify-between gap-2">
+
                 <label className="text-sm font-medium text-slate-700">
+
                     {label}
 
                     {required && (
@@ -666,6 +963,7 @@ function FormField({
                             *
                         </span>
                     )}
+
                 </label>
 
                 {hint && (
@@ -673,6 +971,7 @@ function FormField({
                         {hint}
                     </span>
                 )}
+
             </div>
 
             {children}
@@ -682,34 +981,42 @@ function FormField({
                     {error}
                 </p>
             )}
+
         </div>
     );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Input Styling */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+ * Input Styling
+ * ========================================================================== */
 
-function inputClass(hasError = false) {
+function inputClass(
+    hasError = false
+) {
     return [
         "h-10 w-full rounded-lg border bg-white px-3 text-sm text-slate-900 outline-none transition",
         "placeholder:text-slate-400",
         "focus:ring-2 focus:ring-slate-100",
+
         hasError
             ? "border-red-300 focus:border-red-400"
             : "border-slate-200 focus:border-slate-400",
     ].join(" ");
 }
 
-/* -------------------------------------------------------------------------- */
-/* Label Formatting */
-/* -------------------------------------------------------------------------- */
+/* ==========================================================================
+ * Label Formatting
+ * ========================================================================== */
 
-function formatLabel(value: string) {
+function formatLabel(
+    value: string
+) {
     return value
         .toLowerCase()
         .replace(/_/g, " ")
-        .replace(/\b\w/g, (char) =>
-            char.toUpperCase()
+        .replace(
+            /\b\w/g,
+            (char) =>
+                char.toUpperCase()
         );
 }
