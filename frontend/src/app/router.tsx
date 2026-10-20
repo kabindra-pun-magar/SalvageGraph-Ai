@@ -57,8 +57,11 @@ import { MatchDetailsPage }
 import { MatchingPage }
     from "../features/matching/pages/MatchingPage";
 
-    import { RequirementsDashboardPage }
-from "../features/requirements/pages/RequirementsDashboardPage";
+import { RequirementsDashboardPage }
+    from "../features/requirements/pages/RequirementsDashboardPage";
+
+import { RecommendationsPage }
+    from "../features/recommendations/pages/RecommendationsPage";
 
 
 
@@ -222,6 +225,12 @@ export const router = createBrowserRouter([
                         path: "requirements/:requirementId/matches/:matchId",
 
                         element: <MatchDetailsPage />,
+                    },
+
+
+                    {
+                        path: "recommendations",
+                        element: <RecommendationsPage />,
                     },
 
 
