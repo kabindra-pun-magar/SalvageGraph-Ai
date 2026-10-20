@@ -6,6 +6,9 @@ import {
 import { generateRecommendation } from "../services/recommendation.service";
 import { successResponse } from "../utils/api-response";
 import { getRecommendationForMatch } from "../services/recommendation.service";
+import {
+    getRecommendations,
+} from "../services/recommendation.service";
 
 export const generateRecommendationController = async (
     req: Request,
@@ -74,6 +77,28 @@ export const getRecommendationController = async (
             successResponse(
                 "Recommendation retrieved successfully",
                 recommendation
+            )
+        );
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getRecommendationsController = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const userId = res.locals.user.userId;
+
+        const recommendations =
+            await getRecommendations(userId);
+
+        res.status(200).json(
+            successResponse(
+                "Recommendations retrieved successfully",
+                recommendations
             )
         );
     } catch (error) {

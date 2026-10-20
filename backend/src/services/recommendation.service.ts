@@ -238,3 +238,42 @@ export const getRecommendationForMatch = async (
 
     return match.recommendation;
 };
+
+export const getRecommendations = async (
+    userId: string
+) => {
+    const recommendations =
+        await prisma.recommendation.findMany({
+            where: {
+                match: {
+                    requirement: {
+                        project: {
+                            ownerId: userId,
+                        },
+                    },
+                },
+            },
+            include: {
+                match: {
+                    include: {
+                        material: true,
+                        requirement: {
+                            include: {
+                                project: true,
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: [
+                {
+                    score: "desc",
+                },
+                {
+                    createdAt: "desc",
+                },
+            ],
+        });
+
+    return recommendations;
+};

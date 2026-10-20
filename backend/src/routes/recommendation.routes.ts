@@ -5,7 +5,9 @@ import { generateRecommendationSchema } from "../validators/recommendation.valid
 import {
     generateRecommendationController,
     getRecommendationController,
+    getRecommendationsController,
 } from "../controllers/recommendation.controller";
+
 
 const router = Router();
 
@@ -21,6 +23,11 @@ router.get(
     "/matches/:matchId/recommendation",
     validate(generateRecommendationSchema),
     getRecommendationController
+);
+
+router.get(
+    "/recommendations",
+    getRecommendationsController
 );
 
 export default router;
