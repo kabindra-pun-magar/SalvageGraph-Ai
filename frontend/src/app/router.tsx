@@ -63,6 +63,8 @@ import { RequirementsDashboardPage }
 import { RecommendationsPage }
     from "../features/recommendations/pages/RecommendationsPage";
 
+import { MapsPage } from "../features/maps/pages/MapsPage";
+
 
 
 export const router = createBrowserRouter([
@@ -231,6 +233,11 @@ export const router = createBrowserRouter([
                     {
                         path: "recommendations",
                         element: <RecommendationsPage />,
+                    },
+
+                    {
+                        path: "maps",
+                        element: <MapsPage />,
                     },
 
 
