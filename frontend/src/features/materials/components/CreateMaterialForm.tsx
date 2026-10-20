@@ -4,6 +4,8 @@ import { useForm } from "react-hook-form";
 
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
+import { useState } from "react";
+import { LocationPicker } from "../../maps/components/LocationPicker";
 
 import {
     createMaterial,
@@ -82,16 +84,17 @@ export function CreateMaterialForm({
     const projectsQuery = useProjects();
 
     const projects = projectsQuery.data ?? [];
+    const [locationMode, setLocationMode] = useState<"map" | "manual">(
+        "manual",
+    );
 
     const {
         register,
         handleSubmit,
         reset,
         setError,
-        formState: {
-            errors,
-            isSubmitting,
-        },
+        setValue,
+        formState: { errors, isSubmitting },
     } = useForm<MaterialFormValues>({
         defaultValues: {
             materialCode: "",
@@ -238,8 +241,8 @@ export function CreateMaterialForm({
                 conditionScore:
                     values.conditionScore.trim() !== ""
                         ? Number(
-                              values.conditionScore
-                          )
+                            values.conditionScore
+                        )
                         : undefined,
 
                 age:
@@ -652,9 +655,9 @@ export function CreateMaterialForm({
 
                                             return (
                                                 number >=
-                                                    0 &&
+                                                0 &&
                                                 number <=
-                                                    100
+                                                100
                                             ) ||
                                                 "Condition score must be between 0 and 100";
                                         },
@@ -698,124 +701,168 @@ export function CreateMaterialForm({
                     </h2>
 
                     <p className="mt-1 text-sm text-slate-500">
-                        Specify where the material is currently
-                        located.
+                        Specify where the material is currently located.
                     </p>
                 </div>
 
-                <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                <div className="mt-6 space-y-5">
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            type="button"
+                            variant={locationMode === "map" ? "primary" : "secondary"}
+                            onClick={() => setLocationMode("map")}
+                        >
+                            Choose on Map
+                        </Button>
 
-                    <div className="md:col-span-2">
+                        <Button
+                            type="button"
+                            variant={locationMode === "manual" ? "primary" : "secondary"}
+                            onClick={() => setLocationMode("manual")}
+                        >
+                            Enter Manually
+                        </Button>
+                    </div>
+
+                    <div>
                         <FormField
                             label="Location"
-                            error={
-                                errors.location
-                                    ?.message
-                            }
+                            error={errors.location?.message}
                         >
                             <input
-                                {...register(
-                                    "location"
-                                )}
+                                {...register("location")}
                                 placeholder="e.g. Surkhet, Nepal"
                                 className={inputClass()}
                             />
                         </FormField>
                     </div>
 
-                    <FormField
-                        label="Latitude"
-                        hint="-90 to 90"
-                        error={
-                            errors.latitude?.message
+                    {locationMode === "map" && (
+                        <div className="space-y-2">
+                            <p className="text-sm text-slate-600">
+                                Click the map to select the material's current
+                                physical location.
+                            </p>
+
+                            <LocationPicker
+                                latitude={
+                                    initialData?.latitude != null
+                                        ? Number(initialData.latitude)
+                                        : undefined
+                                }
+                                longitude={
+                                    initialData?.longitude != null
+                                        ? Number(initialData.longitude)
+                                        : undefined
+                                }
+                                onSelect={(selected) => {
+                                    setValue(
+                                        "latitude",
+                                        String(selected.latitude),
+                                        {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                        },
+                                    );
+
+                                    setValue(
+                                        "longitude",
+                                        String(selected.longitude),
+                                        {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                        },
+                                    );
+
+                                    if (selected.locationName) {
+                                        setValue(
+                                            "location",
+                                            selected.locationName.slice(0, 255),
+                                            {
+                                                shouldValidate: true,
+                                                shouldDirty: true,
+                                            },
+                                        );
+                                    }
+                                }}
+                            />
+
+                            <p className="text-xs text-slate-500">
+                                Coordinates are selected from the map. You can
+                                edit the location name above if needed.
+                            </p>
+                        </div>
+                    )}
+
+                    <div
+                        className={
+                            locationMode === "manual"
+                                ? "grid grid-cols-1 gap-5 md:grid-cols-2"
+                                : "hidden"
                         }
                     >
-                        <input
-                            type="number"
-                            step="any"
-                            min="-90"
-                            max="90"
-                            {...register(
-                                "latitude",
-                                {
-                                    validate:
-                                        (value) => {
-                                            if (
-                                                value ===
-                                                ""
-                                            ) {
-                                                return true;
-                                            }
+                        <FormField
+                            label="Latitude"
+                            hint="-90 to 90"
+                            error={errors.latitude?.message}
+                        >
+                            <input
+                                type="number"
+                                step="any"
+                                min="-90"
+                                max="90"
+                                {...register("latitude", {
+                                    validate: (value) => {
+                                        if (value === "") {
+                                            return true;
+                                        }
 
-                                            const number =
-                                                Number(
-                                                    value
-                                                );
+                                        const number = Number(value);
 
-                                            return (
-                                                number >=
-                                                    -90 &&
-                                                number <=
-                                                    90
-                                            ) ||
-                                                "Latitude must be between -90 and 90";
-                                        },
-                                }
-                            )}
-                            placeholder="e.g. 28.6000"
-                            className={inputClass(
-                                !!errors.latitude
-                            )}
-                        />
-                    </FormField>
+                                        return (
+                                            (Number.isFinite(number) &&
+                                                number >= -90 &&
+                                                number <= 90) ||
+                                            "Latitude must be between -90 and 90"
+                                        );
+                                    },
+                                })}
+                                placeholder="e.g. 28.6000"
+                                className={inputClass(!!errors.latitude)}
+                            />
+                        </FormField>
 
-                    <FormField
-                        label="Longitude"
-                        hint="-180 to 180"
-                        error={
-                            errors.longitude
-                                ?.message
-                        }
-                    >
-                        <input
-                            type="number"
-                            step="any"
-                            min="-180"
-                            max="180"
-                            {...register(
-                                "longitude",
-                                {
-                                    validate:
-                                        (value) => {
-                                            if (
-                                                value ===
-                                                ""
-                                            ) {
-                                                return true;
-                                            }
+                        <FormField
+                            label="Longitude"
+                            hint="-180 to 180"
+                            error={errors.longitude?.message}
+                        >
+                            <input
+                                type="number"
+                                step="any"
+                                min="-180"
+                                max="180"
+                                {...register("longitude", {
+                                    validate: (value) => {
+                                        if (value === "") {
+                                            return true;
+                                        }
 
-                                            const number =
-                                                Number(
-                                                    value
-                                                );
+                                        const number = Number(value);
 
-                                            return (
-                                                number >=
-                                                    -180 &&
-                                                number <=
-                                                    180
-                                            ) ||
-                                                "Longitude must be between -180 and 180";
-                                        },
-                                }
-                            )}
-                            placeholder="e.g. 81.6330"
-                            className={inputClass(
-                                !!errors.longitude
-                            )}
-                        />
-                    </FormField>
-
+                                        return (
+                                            (Number.isFinite(number) &&
+                                                number >= -180 &&
+                                                number <= 180) ||
+                                            "Longitude must be between -180 and 180"
+                                        );
+                                    },
+                                })}
+                                placeholder="e.g. 81.6330"
+                                className={inputClass(!!errors.longitude)}
+                            />
+                        </FormField>
+                    </div>
                 </div>
             </Card>
 
@@ -860,8 +907,8 @@ export function CreateMaterialForm({
                                 {projectsQuery.isLoading
                                     ? "Loading projects..."
                                     : projectsQuery.isError
-                                      ? "Unable to load projects"
-                                      : "Select a source project (optional)"}
+                                        ? "Unable to load projects"
+                                        : "Select a source project (optional)"}
                             </option>
 
                             {projects.map(
@@ -920,8 +967,8 @@ export function CreateMaterialForm({
                             ? "Saving..."
                             : "Registering..."
                         : mode === "edit"
-                          ? "Save Changes"
-                          : "Register Material"}
+                            ? "Save Changes"
+                            : "Register Material"}
                 </Button>
 
             </div>

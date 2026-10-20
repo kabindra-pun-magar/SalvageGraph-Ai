@@ -5,6 +5,8 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { useCreateProject } from "../hooks/useCreateProject";
 import { useUpdateProject } from "../hooks/useUpdateProject";
+import { useState } from "react";
+import { LocationPicker } from "../../maps/components/LocationPicker";
 
 const createProjectSchema = z.object({
     name: z
@@ -71,10 +73,16 @@ export function CreateProjectForm({
 
     const isEditMode = mode === "edit";
 
+    const [locationMode, setLocationMode] = useState<"map" | "manual">(
+        "manual",
+    );
+
     const {
         register,
         handleSubmit,
-        formState: { errors},
+        setValue,
+        watch,
+        formState: { errors },
     } = useForm<CreateProjectFormData>({
         resolver: zodResolver(createProjectSchema),
 
@@ -94,6 +102,9 @@ export function CreateProjectForm({
                 : "",
         },
     });
+
+    const selectedLatitude = watch("latitude");
+    const selectedLongitude = watch("longitude");
 
     const isPending =
         createProjectMutation.isPending || updateProjectMutation.isPending;
@@ -193,6 +204,24 @@ export function CreateProjectForm({
             </div>
 
             <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        variant={locationMode === "map" ? "primary" : "secondary"}
+                        onClick={() => setLocationMode("map")}
+                    >
+                        Choose on Map
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant={locationMode === "manual" ? "primary" : "secondary"}
+                        onClick={() => setLocationMode("manual")}
+                    >
+                        Enter Manually
+                    </Button>
+                </div>
+
                 <Input
                     label="Location"
                     placeholder="e.g. Kathmandu, Nepal"
@@ -200,7 +229,54 @@ export function CreateProjectForm({
                     {...register("location")}
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {locationMode === "map" && (
+                    <div className="space-y-2">
+                        <p className="text-sm text-slate-600">
+                            Click on the map to select your project location.
+                            The coordinates will be filled in automatically.
+                        </p>
+
+                        <LocationPicker
+                            latitude={initialData?.latitude}
+                            longitude={initialData?.longitude}
+                            onSelect={(selected) => {
+                                setValue("latitude", selected.latitude, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                });
+
+                                setValue("longitude", selected.longitude, {
+                                    shouldValidate: true,
+                                    shouldDirty: true,
+                                });
+
+                                if (selected.locationName) {
+                                    setValue(
+                                        "location",
+                                        selected.locationName.slice(0, 255),
+                                        {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                        },
+                                    );
+                                }
+                            }}
+                        />
+
+                        <p className="text-xs text-slate-500">
+                            If the location name is not filled automatically,
+                            enter it in the Location field above.
+                        </p>
+                    </div>
+                )}
+
+                <div
+                    className={
+                        locationMode === "manual"
+                            ? "grid grid-cols-1 gap-4 sm:grid-cols-2"
+                            : "hidden"
+                    }
+                >
                     <Input
                         label="Latitude"
                         type="number"
@@ -225,6 +301,32 @@ export function CreateProjectForm({
                         })}
                     />
                 </div>
+
+                {locationMode === "map" && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <p className="text-sm font-medium text-slate-700">
+                                Latitude
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                                {String(
+                                    selectedLatitude ?? "Select a point on the map",
+                                )}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p className="text-sm font-medium text-slate-700">
+                                Longitude
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                                {String(
+                                    selectedLongitude ?? "Select a point on the map",
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Project planning */}
@@ -288,8 +390,8 @@ export function CreateProjectForm({
                             ? "Saving..."
                             : "Creating..."
                         : isEditMode
-                          ? "Save changes"
-                          : "Create project"}
+                            ? "Save changes"
+                            : "Create project"}
                 </Button>
             </div>
         </form>
