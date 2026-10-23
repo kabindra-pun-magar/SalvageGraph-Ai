@@ -67,6 +67,8 @@ import { MapsPage } from "../features/maps/pages/MapsPage";
 
 import { VerificationPage } from "../features/matching/pages/VerificationPage";
 
+import { SettingsPage } from "../features/settings/pages/SettingsPage";
+
 
 export const router = createBrowserRouter([
 
@@ -244,6 +246,11 @@ export const router = createBrowserRouter([
                     {
                         path: "verification",
                         element: <VerificationPage />,
+                    },
+
+                    {
+                        path: "settings",
+                        element: <SettingsPage />,
                     },
 
 
