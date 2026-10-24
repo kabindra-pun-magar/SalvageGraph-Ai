@@ -1,0 +1,59 @@
+# Stage 1: Build the backend
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# Install system dependencies needed by Prisma
+RUN apk add --no-cache openssl
+
+# Copy dependency manifests
+COPY package*.json ./
+
+# Install all dependencies, including build tools
+RUN npm ci
+
+# Copy Prisma schema and configuration
+COPY prisma ./prisma/
+COPY prisma7.config.ts ./
+
+# Copy the application source
+COPY . .
+
+# Generate Prisma Client
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/salvagegraph?schema=public" npx prisma generate
+
+# Compile TypeScript
+RUN npm run build
+
+
+# Stage 2: Production runtime
+FROM node:22-alpine AS production
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Install OpenSSL for Prisma compatibility where needed
+RUN apk add --no-cache openssl
+
+# Copy package manifests
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --omit=dev
+COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copy the compiled application
+COPY --from=build /app/dist ./dist
+
+# Copy Prisma files required at runtime
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma7.config.ts ./
+
+# Copy the generated Prisma Client if it is outside node_modules
+# The location depends on your Prisma generator configuration.
+# Verify this before adding a COPY instruction.
+
+EXPOSE 5000
+
+CMD ["node", "dist/server.js"]
